@@ -13,7 +13,7 @@ class WarshallVisualizerApp : Application() {
         val root = BorderPane()
         val matrixInput = MatrixInput()
         val graphPanel = GraphPanel(matrixInput)
-        val controlPanel = ControlPanel() // если нужен, добавьте реализацию
+        val controlPanel = ControlPanel()
 
         val inputScroll = ScrollPane(matrixInput.view).apply {
             prefWidth = 330.0
@@ -25,7 +25,7 @@ class WarshallVisualizerApp : Application() {
         splitPane.setDividerPositions(0.38)
 
         root.center = splitPane
-        root.bottom = controlPanel.view // если у вас есть ControlPanel
+        root.bottom = controlPanel.view
 
         primaryStage.scene = Scene(root, 1050.0, 700.0)
         primaryStage.title = "Визуализатор алгоритма Уоршелла"
