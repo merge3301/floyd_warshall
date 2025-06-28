@@ -1,6 +1,6 @@
 package core
 
-object WarshallClosure {
+abstract class WarshallClosure {
     fun computeClosure(matrix: List<List<Int>>): List<List<Int>> {
         val n = matrix.size
         val closure = Array(n) { i -> matrix[i].toIntArray() }

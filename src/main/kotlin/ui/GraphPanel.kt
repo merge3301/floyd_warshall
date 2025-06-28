@@ -3,8 +3,7 @@ package ui
 import javafx.beans.value.ObservableValue
 import javafx.scene.input.MouseButton
 import javafx.scene.input.ScrollEvent
-import javafx.scene.layout.Pane
-import javafx.scene.layout.StackPane
+import javafx.scene.layout.*
 import javafx.scene.paint.Color
 import javafx.scene.shape.*
 import javafx.scene.text.Font
@@ -12,11 +11,9 @@ import javafx.scene.text.Text
 import kotlin.math.*
 
 class GraphPanel(val matrixInput: MatrixInput) {
-    // Просто графика — без заливки фона
     private val graphLayer = Pane().apply {
         prefWidth = 20000.0
         prefHeight = 20000.0
-        // Без background!
         style = ""
     }
     val view: StackPane
@@ -28,17 +25,19 @@ class GraphPanel(val matrixInput: MatrixInput) {
     private var paneOriginX = 0.0
     private var paneOriginY = 0.0
 
+    var currentIteration: Int = 0
+        private set
+
+    var addedEdges: List<Pair<Int, Int>> = emptyList()
+        private set
+
     init {
-        // Только слой графа
         view = StackPane().apply {
             children.add(graphLayer)
             prefWidth = 1200.0
             prefHeight = 1200.0
-            // Можно здесь задать фон, если нужно:
-            // style = "-fx-background-color: #ececec;" // светло-серый фон
         }
 
-        // Масштабирование колесом мыши
         view.addEventFilter(ScrollEvent.SCROLL) { event ->
             val zoomFactor = if (event.deltaY > 0) 1.1 else 1 / 1.1
             scale = (scale * zoomFactor).coerceIn(0.2, 5.0)
@@ -47,7 +46,6 @@ class GraphPanel(val matrixInput: MatrixInput) {
             event.consume()
         }
 
-        // Перетаскивание мышкой
         view.setOnMousePressed { event ->
             if (event.button == MouseButton.PRIMARY) {
                 dragOriginX = event.sceneX
@@ -63,14 +61,18 @@ class GraphPanel(val matrixInput: MatrixInput) {
             }
         }
 
-        // Слушатель размера графа
         matrixInput.sizeSpinner.valueProperty().addListener { _: ObservableValue<out Int>?, _, newSize ->
             setupFieldListeners(newSize as Int)
             updateVisualizationNodes(newSize)
         }
-        // Инициализация
+
         setupFieldListeners(matrixInput.sizeSpinner.value)
         updateVisualizationNodes(matrixInput.sizeSpinner.value)
+    }
+
+    fun setIterationInfo(iteration: Int, edges: List<Pair<Int, Int>>) {
+        currentIteration = iteration
+        addedEdges = edges
     }
 
     private fun setupFieldListeners(size: Int) {
@@ -92,14 +94,13 @@ class GraphPanel(val matrixInput: MatrixInput) {
         val centerX = 600.0
         val centerY = 600.0
 
-        // Вершины
         for (i in 0 until size) {
             val angle = 2 * Math.PI * i / size
             val x = centerX + radius * cos(angle)
             val y = centerY + radius * sin(angle)
             nodePositions.add(Pair(x, y))
         }
-        // Рёбра
+
         for (i in 0 until size) {
             for (j in 0 until size) {
                 val value = matrixInput.matrixFields[i][j].text.trim().toIntOrNull() ?: 0
@@ -110,7 +111,7 @@ class GraphPanel(val matrixInput: MatrixInput) {
                 }
             }
         }
-        // Петли
+
         for (i in 0 until size) {
             val value = matrixInput.matrixFields[i][i].text.trim().toIntOrNull() ?: 0
             if (value == 1) {
@@ -118,7 +119,7 @@ class GraphPanel(val matrixInput: MatrixInput) {
                 drawLoop(x, y, centerX, centerY)
             }
         }
-        // Круги и подписи
+
         for (i in 0 until size) {
             val (x, y) = nodePositions[i]
             val node = Circle(x, y, 22.0, Color.LIGHTBLUE)

@@ -10,7 +10,6 @@ import javafx.scene.layout.HBox
 import javafx.scene.layout.VBox
 
 class ControlPanel {
-    val statusLabel = Label("Статус: Готов к запуску")
     val startButton = Button("Запуск")
     val stepForward = Button("Шаг >")
     val stepBack = Button("< Шаг")
@@ -23,10 +22,8 @@ class ControlPanel {
         controlBar.padding = Insets(10.0)
         controlBar.alignment = Pos.CENTER
         controlBar.style = "-fx-background-color: #f0f8ff;"
-        val statusBar = HBox(statusLabel)
-        statusBar.padding = Insets(5.0)
-        statusBar.style = "-fx-background-color: #f5f5f5;"
-        view = VBox(controlBar, statusBar)
+
+        view = VBox(controlBar)
 
         helpButton.setOnAction {
             val alert = Alert(AlertType.INFORMATION)
