@@ -1,12 +1,19 @@
 package ui
 
 import javafx.geometry.Insets
+import javafx.geometry.Pos
 import javafx.scene.control.*
 import javafx.scene.layout.*
+import javafx.scene.text.Font
+import javafx.scene.text.FontWeight
 import util.RandomGraph
 
 class MatrixInput {
-    val sizeSpinner = Spinner<Int>(1, 15, 3)
+    private val MAX_SIZE = 15
+
+    val sizeSpinner = Spinner<Int>(1, MAX_SIZE, 3)
+    private val edgeSpinner = Spinner<Int>(0, 6, 6)
+
     val matrixGrid = GridPane()
     val randomButton = Button("Случайная матрица")
     val clearButton = Button("Очистить")
@@ -16,55 +23,161 @@ class MatrixInput {
 
     init {
         sizeSpinner.isEditable = true
-        matrixGrid.hgap = 15.0
-        matrixGrid.vgap = 15.0
+        edgeSpinner.isEditable = true
+
+        matrixGrid.hgap = 5.0
+        matrixGrid.vgap = 5.0
         matrixGrid.padding = Insets(5.0)
+
         rebuildMatrixGrid(sizeSpinner.value)
-        sizeSpinner.valueProperty().addListener { _: javafx.beans.value.ObservableValue<out Int>?, _: Int?, newSize: Int? ->
+
+        sizeSpinner.valueProperty().addListener { _, _, newSize ->
             if (newSize != null) {
                 rebuildMatrixGrid(newSize)
+                updateEdgeSpinnerMax(newSize)
             }
         }
+
         randomButton.setOnAction {
             val size = sizeSpinner.value
-            val edges = (1..size * 2).random()
+            val edges = edgeSpinner.value
             val matrix = RandomGraph.generateAdjacencyMatrix(size, edges)
-            for (i in 0 until size) {
-                for (j in 0 until size) {
-                    matrixFields[i][j].text = matrix[i][j].toString()
-                }
-            }
+            updateMatrixDisplay(matrix)
         }
+
         clearButton.setOnAction {
             val size = sizeSpinner.value
-            for (i in 0 until size) {
-                for (j in 0 until size) {
-                    matrixFields[i][j].text = "0"
-                }
-            }
+            val zeroMatrix = Array(size) { IntArray(size) { 0 } }
+            updateMatrixDisplay(zeroMatrix)
         }
+
         view = VBox(12.0,
-            Label("Размер графа:"), sizeSpinner, matrixGrid,
+            Label("Размер графа:"), sizeSpinner,
+            Label("Количество рёбер:"), edgeSpinner,
+            matrixGrid,
             HBox(10.0, randomButton, clearButton)
         ).apply {
             padding = Insets(15.0)
             style = "-fx-background-color: #f9f9f9; -fx-border-color: #cccccc; -fx-border-radius: 5;"
         }
+
+        updateEdgeSpinnerMax(sizeSpinner.value)
+    }
+
+    private fun updateEdgeSpinnerMax(size: Int) {
+        val maxEdges = size * (size - 1)
+        val current = edgeSpinner.value.coerceAtMost(maxEdges)
+        edgeSpinner.valueFactory = SpinnerValueFactory.IntegerSpinnerValueFactory(0, maxEdges, current)
     }
 
     private fun rebuildMatrixGrid(size: Int) {
         matrixGrid.children.clear()
         matrixFields.clear()
+
+        for (j in 0 until size) {
+            val label = styledHeaderLabel(j + 1)
+            matrixGrid.add(label, j + 1, 0)
+        }
+
         for (i in 0 until size) {
             val row = mutableListOf<TextField>()
+
+            val rowLabel = styledHeaderLabel(i + 1)
+            matrixGrid.add(rowLabel, 0, i + 1)
+
             for (j in 0 until size) {
                 val field = TextField("0")
                 field.prefWidth = 42.0
-                field.alignment = javafx.geometry.Pos.CENTER
+                field.alignment = Pos.CENTER
+
+                if (i == j) {
+                    field.isEditable = false
+                    field.style = """
+                        -fx-background-color: #dddddd;
+                        -fx-text-fill: #aaaaaa;
+                    """.trimIndent()
+                } else {
+                    field.focusedProperty().addListener { _, wasFocused, isFocused ->
+                        if (wasFocused && !isFocused) {
+                            val value = field.text
+                            val cleaned = value.trimStart('0')
+                            if (cleaned != "" && cleaned != "1") {
+                                showErrorDialog("Некорректное значение: \"$value\". Разрешены только 0 и 1.")
+                                field.text = "0"
+                                field.requestFocus()
+                            } else {
+                                field.text = if (cleaned == "1") "1" else "0"
+                            }
+                        }
+                    }
+                }
+
                 row.add(field)
-                matrixGrid.add(field, j, i)
+                matrixGrid.add(field, j + 1, i + 1)
             }
+
             matrixFields.add(row)
+        }
+    }
+
+    private fun styledHeaderLabel(index: Int): Label {
+        return Label(index.toString()).apply {
+            alignment = Pos.CENTER
+            prefWidth = 42.0
+            font = Font.font("System", FontWeight.BOLD, 13.0)
+            style = "-fx-text-fill: #333333; -fx-effect: dropshadow(one-pass-box, #bbbbbb, 1, 0.0, 0.5, 0.5);"
+        }
+    }
+
+    private fun showErrorDialog(msg: String) {
+        val alert = Alert(Alert.AlertType.ERROR)
+        alert.title = "Ошибка ввода"
+        alert.headerText = "Некорректные данные"
+        alert.contentText = msg
+        alert.showAndWait()
+    }
+
+    fun getMatrix(): Array<IntArray> {
+        return matrixFields.map { row ->
+            row.map { it.text.toIntOrNull() ?: 0 }.toIntArray()
+        }.toTypedArray()
+    }
+
+    fun updateMatrixDisplay(matrix: Array<IntArray>) {
+        val size = matrix.size
+        if (size != matrixFields.size) rebuildMatrixGrid(size)
+
+        for (i in 0 until size) {
+            for (j in 0 until size) {
+                matrixFields[i][j].text = if (matrix[i][j] == 1) "1" else "0"
+            }
+        }
+    }
+
+    fun highlightCells(cells: List<Triple<Int, Int, String>>) {
+        for ((i, j, type) in cells) {
+            if (i in matrixFields.indices && j in matrixFields[i].indices) {
+                val color = when (type) {
+                    "candidate" -> "#ffe0b2"
+                    "target"    -> "#fff9c4"
+                    "added"     -> "#c8e6c9"
+                    else        -> "#e0e0e0"
+                }
+                matrixFields[i][j].style += "-fx-background-color: $color;"
+            }
+        }
+    }
+
+    fun clearHighlights() {
+        for (i in matrixFields.indices) {
+            for (j in matrixFields[i].indices) {
+                val field = matrixFields[i][j]
+                val baseStyle = if (i == j)
+                    "-fx-background-color: #dddddd; -fx-text-fill: #aaaaaa;"
+                else
+                    ""
+                field.style = baseStyle
+            }
         }
     }
 }
