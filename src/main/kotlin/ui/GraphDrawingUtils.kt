@@ -20,7 +20,6 @@ object GraphDrawingUtils {
         selectedNodes: Collection<Int> = emptyList()
     ) {
         graphLayer.children.clear()
-        nodePositions.clear()
         edgeMap.clear()
         nodeMap.clear()
 
@@ -28,14 +27,19 @@ object GraphDrawingUtils {
         val centerX = 600.0
         val centerY = 600.0
 
-        for (i in 0 until size) {
-            val angle = 2 * Math.PI * i / size
-            val x = centerX + radius * cos(angle)
-            val y = centerY + radius * sin(angle)
-            nodePositions.add(Pair(x, y))
+        // Только если не хватает позиций — расставляем по кругу
+        if (nodePositions.size != size) {
+            nodePositions.clear()
+            for (i in 0 until size) {
+                val angle = 2 * Math.PI * i / size
+                val x = centerX + radius * cos(angle)
+                val y = centerY + radius * sin(angle)
+                nodePositions.add(Pair(x, y))
+            }
         }
 
-        // PHANTOM EDGES
+        // Обычные рёбра и phantom edges
+        val allEdges = mutableListOf<Pair<Line, Polygon>>()
         for ((i, j, type) in highlights) {
             if (type == "candidate") {
                 val exists = (i in 0 until size) && (j in 0 until size) &&
@@ -43,39 +47,35 @@ object GraphDrawingUtils {
                 if (!exists && i != j) {
                     val (x1, y1) = nodePositions[i]
                     val (x2, y2) = nodePositions[j]
-                    val (line, arrow) = drawArrow(x1, y1, x2, y2, graphLayer)
+                    val (line, arrow) = drawArrow(x1, y1, x2, y2)
                     line.strokeDashArray.addAll(8.0, 8.0)
                     line.stroke = Color.ORANGE
                     line.opacity = 0.6
                     arrow.fill = Color.ORANGE
                     arrow.opacity = 0.4
+                    allEdges.add(line to arrow)
                 }
             }
         }
-
-        // Обычные рёбра
         for (i in 0 until size) {
             for (j in 0 until size) {
                 val value = matrixInput.matrixFields[i][j].text.trim().toIntOrNull() ?: 0
                 if (value == 1 && i != j) {
                     val (x1, y1) = nodePositions[i]
                     val (x2, y2) = nodePositions[j]
-                    val (line, arrow) = drawArrow(x1, y1, x2, y2, graphLayer)
+                    val (line, arrow) = drawArrow(x1, y1, x2, y2)
                     val isAdded = highlights.any { it.first == i && it.second == j && it.third == "added" }
                     if (isAdded) {
                         line.stroke = Color.FORESTGREEN
                         arrow.fill = Color.FORESTGREEN
                         line.strokeWidth = 3.0
-                        arrow.opacity = 1.0
-                        line.opacity = 1.0
                     } else {
                         line.stroke = Color.DARKBLUE
                         arrow.fill = Color.DARKBLUE
                         line.strokeWidth = 2.5
-                        arrow.opacity = 1.0
-                        line.opacity = 1.0
                     }
                     edgeMap[i to j] = line to arrow
+                    allEdges.add(line to arrow)
                 }
             }
         }
@@ -85,11 +85,14 @@ object GraphDrawingUtils {
             val value = matrixInput.matrixFields[i][i].text.trim().toIntOrNull() ?: 0
             if (value == 1) {
                 val (x, y) = nodePositions[i]
-                drawLoop(x, y, centerX, centerY, graphLayer)
+                val loop = drawLoop(x, y, centerX, centerY)
+                graphLayer.children.add(loop)
             }
         }
 
-        // Вершины
+        // Вершины и лейблы (ОТДЕЛЬНО, чтобы всегда были сверху!)
+        val nodeCircles = mutableListOf<Circle>()
+        val nodeLabels = mutableListOf<Text>()
         for (i in 0 until size) {
             val (x, y) = nodePositions[i]
             val highlighted = selectedNodes.contains(i)
@@ -97,18 +100,106 @@ object GraphDrawingUtils {
                 if (highlighted) Color.GOLD else Color.LIGHTBLUE).apply {
                 stroke = if (highlighted) Color.ORANGE else Color.DODGERBLUE
                 strokeWidth = if (highlighted) 3.5 else 2.0
-                setOnMouseClicked { onVertexClicked(i) }
             }
             val label = Text(x - 7, y + 6, (i + 1).toString()).apply {
                 font = Font.font(17.0)
                 fill = if (highlighted) Color.DARKRED else Color.BLACK
+                mouseTransparentProperty().set(true) // чтобы не мешал drag
             }
+            // --- DRAG'n'DROP ---
+            var dragDeltaX = 0.0
+            var dragDeltaY = 0.0
+            node.setOnMousePressed { event ->
+                dragDeltaX = event.sceneX - node.centerX
+                dragDeltaY = event.sceneY - node.centerY
+                node.stroke = Color.FIREBRICK
+                node.toFront()
+                event.consume()
+            }
+            node.setOnMouseDragged { event ->
+                node.centerX = event.sceneX - dragDeltaX
+                node.centerY = event.sceneY - dragDeltaY
+                nodePositions[i] = node.centerX to node.centerY
+                // Передвигаем label вместе с node
+                label.x = node.centerX - 7
+                label.y = node.centerY + 6
+                // Перерисовываем только edges!
+                redrawEdges(graphLayer, nodePositions, matrixInput, highlights, edgeMap)
+                event.consume()
+            }
+            node.setOnMouseReleased { event ->
+                node.stroke = if (highlighted) Color.ORANGE else Color.DODGERBLUE
+                event.consume()
+            }
+            node.setOnMouseClicked { onVertexClicked(i) }
+            nodeCircles.add(node)
+            nodeLabels.add(label)
             nodeMap[i] = node
-            graphLayer.children.addAll(node, label)
+        }
+
+        // 1. Рёбра и лупы
+        allEdges.forEach { (line, arrow) -> graphLayer.children.addAll(line, arrow) }
+        // 2. Вершины
+        nodeCircles.forEach { graphLayer.children.add(it) }
+        // 3. Лейблы
+        nodeLabels.forEach { graphLayer.children.add(it) }
+    }
+
+    // Перерисовать только рёбра (при drag)
+    private fun redrawEdges(
+        graphLayer: Pane,
+        nodePositions: List<Pair<Double, Double>>,
+        matrixInput: MatrixInput,
+        highlights: List<Triple<Int, Int, String>>,
+        edgeMap: MutableMap<Pair<Int, Int>, Pair<Line, Polygon>>
+    ) {
+        // Сначала удаляем старые рёбра
+        graphLayer.children.removeIf { it is Line || it is Polygon }
+        edgeMap.clear()
+
+        val size = nodePositions.size
+        for ((i, j, type) in highlights) {
+            if (type == "candidate") {
+                val exists = (i in 0 until size) && (j in 0 until size) &&
+                        (matrixInput.matrixFields[i][j].text.trim().toIntOrNull() == 1)
+                if (!exists && i != j) {
+                    val (x1, y1) = nodePositions[i]
+                    val (x2, y2) = nodePositions[j]
+                    val (line, arrow) = drawArrow(x1, y1, x2, y2)
+                    line.strokeDashArray.addAll(8.0, 8.0)
+                    line.stroke = Color.ORANGE
+                    line.opacity = 0.6
+                    arrow.fill = Color.ORANGE
+                    arrow.opacity = 0.4
+                    graphLayer.children.addAll(line, arrow)
+                }
+            }
+        }
+        for (i in 0 until size) {
+            for (j in 0 until size) {
+                val value = matrixInput.matrixFields[i][j].text.trim().toIntOrNull() ?: 0
+                if (value == 1 && i != j) {
+                    val (x1, y1) = nodePositions[i]
+                    val (x2, y2) = nodePositions[j]
+                    val (line, arrow) = drawArrow(x1, y1, x2, y2)
+                    val isAdded = highlights.any { it.first == i && it.second == j && it.third == "added" }
+                    if (isAdded) {
+                        line.stroke = Color.FORESTGREEN
+                        arrow.fill = Color.FORESTGREEN
+                        line.strokeWidth = 3.0
+                    } else {
+                        line.stroke = Color.DARKBLUE
+                        arrow.fill = Color.DARKBLUE
+                        line.strokeWidth = 2.5
+                    }
+                    edgeMap[i to j] = line to arrow
+                    graphLayer.children.addAll(line, arrow)
+                }
+            }
         }
     }
 
-    private fun drawArrow(fromX: Double, fromY: Double, toX: Double, toY: Double, graphLayer: Pane): Pair<Line, Polygon> {
+    private fun drawArrow(fromX: Double, fromY: Double, toX: Double, toY: Double): Pair<Line, Polygon> {
         val dx = toX - fromX
         val dy = toY - fromY
         val len = sqrt(dx * dx + dy * dy)
@@ -133,12 +224,10 @@ object GraphDrawingUtils {
         val arrow = Polygon(tx, ty, x1, y1, x2, y2).apply {
             fill = Color.DARKBLUE
         }
-
-        graphLayer.children.addAll(line, arrow)
         return line to arrow
     }
 
-    private fun drawLoop(x: Double, y: Double, cx: Double, cy: Double, graphLayer: Pane) {
+    private fun drawLoop(x: Double, y: Double, cx: Double, cy: Double): Circle {
         val loopRadius = 16.0
         val shift = 24.0
         val vx = x - cx
@@ -149,10 +238,9 @@ object GraphDrawingUtils {
         val dy = vy * norm
         val loopCenterX = x + dx * shift - dy * 6
         val loopCenterY = y + dy * shift + dx * 6
-        val loopCircle = Circle(loopCenterX, loopCenterY, loopRadius, Color.TRANSPARENT).apply {
+        return Circle(loopCenterX, loopCenterY, loopRadius, Color.TRANSPARENT).apply {
             stroke = Color.DARKMAGENTA
             strokeWidth = 2.2
         }
-        graphLayer.children.add(loopCircle)
     }
 }
