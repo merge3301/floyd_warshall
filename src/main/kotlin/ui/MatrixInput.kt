@@ -6,7 +6,7 @@ import javafx.scene.control.*
 import javafx.scene.layout.*
 import javafx.scene.text.Font
 import javafx.scene.text.FontWeight
-import util.RandomGraph
+import ui.RandomGraph
 
 class MatrixInput {
     private val MAX_SIZE = 15
