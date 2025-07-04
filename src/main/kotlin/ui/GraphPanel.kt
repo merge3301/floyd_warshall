@@ -23,7 +23,6 @@ class GraphPanel(val matrixInput: MatrixInput) {
     private var paneOriginX = 0.0
     private var paneOriginY = 0.0
 
-    // "Ручная" подсветка только для выделения кликом!
     private var selectedNode: Int? = null
 
     init {
@@ -63,12 +62,43 @@ class GraphPanel(val matrixInput: MatrixInput) {
             }
         }
 
-        matrixInput.sizeSpinner.valueProperty().addListener { _: ObservableValue<out Int>?, _, newSize ->
-            setupFieldListeners(newSize as Int)
-            updateVisualizationNodes(newSize)
+        // Слушатель для sizeSpinner — только добавляем новые позиции
+        matrixInput.sizeSpinner.valueProperty().addListener { _: ObservableValue<out Int>?, oldSize, newSize ->
+            val old = oldSize as? Int ?: nodePositions.size
+            val newS = newSize as Int
+            if (newS > old) {
+                // Добавить новые позиции на окружности (или по какому-то своему правилу)
+                val radius = 175.0
+                val centerX = 600.0
+                val centerY = 600.0
+                for (i in nodePositions.size until newS) {
+                    val angle = 2 * Math.PI * i / newS
+                    val x = centerX + radius * cos(angle)
+                    val y = centerY + radius * sin(angle)
+                    nodePositions.add(Pair(x, y))
+                }
+            } else if (newS < old && newS < nodePositions.size) {
+                // Удалить лишние
+                while (nodePositions.size > newS) nodePositions.removeAt(nodePositions.size - 1)
+            }
+            setupFieldListeners(newS)
+            updateVisualizationNodes(newS)
         }
 
         setupFieldListeners(matrixInput.sizeSpinner.value)
+        if (nodePositions.isEmpty()) {
+            // Инициализация для старта
+            val size = matrixInput.sizeSpinner.value
+            val radius = 175.0
+            val centerX = 600.0
+            val centerY = 600.0
+            for (i in 0 until size) {
+                val angle = 2 * Math.PI * i / size
+                val x = centerX + radius * cos(angle)
+                val y = centerY + radius * sin(angle)
+                nodePositions.add(Pair(x, y))
+            }
+        }
         updateVisualizationNodes(matrixInput.sizeSpinner.value)
     }
 
@@ -94,7 +124,6 @@ class GraphPanel(val matrixInput: MatrixInput) {
     }
 
     private fun onVertexClicked(idx: Int) {
-        // Локальная ручная подсветка (например, соединение рёбер)
         if (selectedNode == null) {
             selectedNode = idx
             updateVisualizationNodes(matrixInput.sizeSpinner.value, emptyList(), listOf(idx))
@@ -114,10 +143,8 @@ class GraphPanel(val matrixInput: MatrixInput) {
     }
 
     private fun addNewNode(x: Double, y: Double) {
-        val oldPositions = nodePositions.toList()
+        // Просто добавляем одну новую позицию вручную!
         matrixInput.sizeSpinner.valueFactory.value = matrixInput.sizeSpinner.valueFactory.value + 1
-        nodePositions.clear()
-        nodePositions.addAll(oldPositions)
         nodePositions.add(Pair(x, y))
         updateVisualizationNodes(matrixInput.sizeSpinner.value)
     }
@@ -131,8 +158,11 @@ class GraphPanel(val matrixInput: MatrixInput) {
         return false
     }
 
-    // Аргументы: highlights — рёбра, selectedNodes — вершины
-    private fun updateVisualizationNodes(size: Int, highlights: List<Triple<Int, Int, String>> = emptyList(), selectedNodes: Collection<Int> = emptyList()) {
+    private fun updateVisualizationNodes(
+        size: Int,
+        highlights: List<Triple<Int, Int, String>> = emptyList(),
+        selectedNodes: Collection<Int> = emptyList()
+    ) {
         GraphDrawingUtils.updateVisualizationNodes(
             graphLayer, matrixInput, size, highlights,
             nodePositions, edgeMap, nodeMap, ::onVertexClicked, selectedNodes

@@ -71,6 +71,8 @@ class MatrixInput {
     }
 
     private fun rebuildMatrixGrid(size: Int) {
+        val oldMatrix = getMatrix()
+
         matrixGrid.children.clear()
         matrixFields.clear()
 
@@ -90,12 +92,13 @@ class MatrixInput {
                 field.prefWidth = 42.0
                 field.alignment = Pos.CENTER
 
+                if (i < oldMatrix.size && j < oldMatrix.size) {
+                    field.text = oldMatrix[i][j].toString()
+                }
+
                 if (i == j) {
                     field.isEditable = false
-                    field.style = """
-                        -fx-background-color: #dddddd;
-                        -fx-text-fill: #aaaaaa;
-                    """.trimIndent()
+                    field.style = BASE_DIAGONAL_STYLE
                 } else {
                     field.focusedProperty().addListener { _, wasFocused, isFocused ->
                         if (wasFocused && !isFocused) {
@@ -152,19 +155,31 @@ class MatrixInput {
                 matrixFields[i][j].text = if (matrix[i][j] == 1) "1" else "0"
             }
         }
+
+    }
+
+    /** ---- ПОДСВЕТКА ---- */
+
+    fun highlightCell(i: Int, j: Int, color: String = "#fff59d") {
+        if (i in matrixFields.indices && j in matrixFields[i].indices) {
+            val field = matrixFields[i][j]
+            // Всегда замени стиль полностью!
+            field.style = if (i == j)
+                BASE_DIAGONAL_STYLE
+            else
+                "-fx-background-color: $color; -fx-text-fill: #222222;"
+        }
     }
 
     fun highlightCells(cells: List<Triple<Int, Int, String>>) {
         for ((i, j, type) in cells) {
-            if (i in matrixFields.indices && j in matrixFields[i].indices) {
-                val color = when (type) {
-                    "candidate" -> "#ffe0b2"
-                    "target"    -> "#fff9c4"
-                    "added"     -> "#c8e6c9"
-                    else        -> "#e0e0e0"
-                }
-                matrixFields[i][j].style += "-fx-background-color: $color;"
+            val color = when (type) {
+                "candidate" -> "#ffe0b2"
+                "target"    -> "#fff9c4"
+                "added"     -> "#c8e6c9"
+                else        -> "#e0e0e0"
             }
+            highlightCell(i, j, color)
         }
     }
 
@@ -172,12 +187,12 @@ class MatrixInput {
         for (i in matrixFields.indices) {
             for (j in matrixFields[i].indices) {
                 val field = matrixFields[i][j]
-                val baseStyle = if (i == j)
-                    "-fx-background-color: #dddddd; -fx-text-fill: #aaaaaa;"
-                else
-                    ""
-                field.style = baseStyle
+                field.style = if (i == j) BASE_DIAGONAL_STYLE else ""
             }
         }
+    }
+
+    companion object {
+        private const val BASE_DIAGONAL_STYLE = "-fx-background-color: #dddddd; -fx-text-fill: #aaaaaa;"
     }
 }

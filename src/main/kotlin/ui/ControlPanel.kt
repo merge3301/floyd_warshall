@@ -1,7 +1,7 @@
 package ui
 
 import core.WarshallStepper
-import javafx.application.Platform
+import core.WarshallStep
 import javafx.geometry.Insets
 import javafx.geometry.Pos
 import javafx.scene.control.*
@@ -41,7 +41,6 @@ class ControlPanel(
         view = VBox(10.0, controlBar, logArea).apply {
             padding = Insets(10.0)
         }
-
         startButton.setOnAction {
             val matrix = matrixInput.getMatrix()
             warshallStepper = WarshallStepper(matrix)
@@ -133,13 +132,16 @@ class ControlPanel(
         }
     }
 
-    private fun updateStep(step: core.WarshallStep) {
+    private fun updateStep(step: WarshallStep) {
         matrixInput.updateMatrixDisplay(step.matrix)
-        // ВСЁ! — вся подсветка только через параметры, никаких clearHighlights
+        matrixInput.clearHighlights()                    // <-- сброс перед каждым шагом
+        if (step.involved.isNotEmpty()) {
+            matrixInput.highlightCells(step.involved)    // <-- подсвечиваем только нужные
+        }
         graphPanel.updateGraph(
             step.matrix,
-            highlights = step.involved,                        // что подсветить (ребра)
-            highlightedNodes = listOf(step.i, step.j, step.k)  // что подсветить (вершины)
+            highlights = step.involved,
+            highlightedNodes = listOf(step.i, step.j, step.k)
         )
         statusLabel.text = if (warshallStepper?.isFinished() == true)
             "Статус: Алгоритм завершён."
@@ -152,7 +154,8 @@ class ControlPanel(
         logArea.appendText("$message\n")
     }
 
-    private fun logStep(step: core.WarshallStep) {
+    private fun logStep(step: WarshallStep) {
         log("Шаг: k=${step.k + 1}, i=${step.i + 1}, j=${step.j + 1} — ${step.message}")
     }
+
 }

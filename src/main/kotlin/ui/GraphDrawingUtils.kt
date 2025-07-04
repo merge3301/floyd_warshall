@@ -20,7 +20,7 @@ object GraphDrawingUtils {
         selectedNodes: Collection<Int> = emptyList()
     ) {
         graphLayer.children.clear()
-        edgeMap.clear()
+        edgeMap.keys.removeIf { it.first >= size || it.second >= size }
         nodeMap.clear()
 
         val radius = 175.0
@@ -28,14 +28,20 @@ object GraphDrawingUtils {
         val centerY = 600.0
 
         // Только если не хватает позиций — расставляем по кругу
-        if (nodePositions.size != size) {
-            nodePositions.clear()
-            for (i in 0 until size) {
+        if (nodePositions.size < size) {
+            // Добавляем только новые позиции!
+            val radius = 175.0
+            val centerX = 600.0
+            val centerY = 600.0
+            for (i in nodePositions.size until size) {
                 val angle = 2 * Math.PI * i / size
                 val x = centerX + radius * cos(angle)
                 val y = centerY + radius * sin(angle)
                 nodePositions.add(Pair(x, y))
             }
+        } else if (nodePositions.size > size) {
+            // Удаляем только лишние
+            while (nodePositions.size > size) nodePositions.removeAt(nodePositions.size - 1)
         }
 
         // Обычные рёбра и phantom edges

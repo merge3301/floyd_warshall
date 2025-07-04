@@ -74,7 +74,9 @@ class WarshallVisualizerApp : Application() {
         statusLabel.maxWidth = Double.MAX_VALUE
         return bar
     }
+
 }
+
 
 fun main() {
     Application.launch(WarshallVisualizerApp::class.java)
