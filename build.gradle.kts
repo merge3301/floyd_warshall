@@ -9,7 +9,6 @@ repositories {
 
 val javafxVersion = "21"
 
-// Автоматическое определение платформы
 val platform = when {
     org.gradle.internal.os.OperatingSystem.current().isMacOsX -> {
         val arch = System.getProperty("os.arch")
@@ -27,8 +26,17 @@ dependencies {
 }
 
 application {
-    // Указываем главный класс (с функцией main)
-    mainClass.set("WarshallVisualizerAppKt")
+    // Имя main-класса — из файла Main.kt с fun main()
+    mainClass.set("MainKt")
+}
+
+tasks.withType<Jar> {
+    manifest {
+        attributes["Main-Class"] = "MainKt"
+    }
+    // Включить зависимости внутрь jar (fat jar/uber jar)
+    from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 tasks.withType<JavaExec>().configureEach {

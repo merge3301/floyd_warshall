@@ -43,3 +43,6 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+# --- включаем наш jar ---
+!build/libs/floyd_warshall.jar
