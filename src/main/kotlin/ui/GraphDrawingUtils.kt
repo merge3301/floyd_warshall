@@ -233,6 +233,7 @@ object GraphDrawingUtils {
         return line to arrow
     }
 
+
     private fun drawLoop(x: Double, y: Double, cx: Double, cy: Double): Circle {
         val loopRadius = 16.0
         val shift = 24.0
