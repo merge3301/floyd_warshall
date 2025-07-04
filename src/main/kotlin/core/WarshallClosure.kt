@@ -1,14 +1,30 @@
 package core
 
+/**
+ * Состояние одного шага алгоритма Уоршелла.
+ *
+ * @property matrix Текущая матрица смежности (графа) после применения шага.
+ * @property k Индекс промежуточной вершины (итерация по k).
+ * @property i Текущий исходный узел (строка).
+ * @property j Текущий целевой узел (столбец).
+ * @property message Сообщение для пользователя/визуализации.
+ * @property involved Список ячеек, участвующих в данном шаге (для подсветки), формат: (i, j, тип).
+ */
 data class WarshallStep(
     val matrix: Array<IntArray>,
     val k: Int,
     val i: Int,
     val j: Int,
     val message: String,
-    val involved: List<Triple<Int, Int, String>> = emptyList() // (i, j, type)
+    val involved: List<Triple<Int, Int, String>> = emptyList()
 )
 
+/**
+ * Пошаговый исполнитель алгоритма Уоршелла с историей шагов и возможностью визуализации.
+ *
+ * @constructor Принимает стартовую матрицу смежности (0/1), не изменяет исходные данные.
+ * @param startMatrix Исходная матрица смежности, на которой будет вычисляться транзитивное замыкание.
+ */
 class WarshallStepper(private val startMatrix: Array<IntArray>) {
     private val n = startMatrix.size
     private var k = 0
@@ -22,16 +38,23 @@ class WarshallStepper(private val startMatrix: Array<IntArray>) {
     init {
         if (n == 0 || n == 1) finished = true
     }
+
     /**
-     * Снимок текущего состояния (например, для отображения до первого шага)
+     * Возвращает снимок текущего состояния алгоритма без выполнения шага.
+     * Обычно используется для отображения стартового состояния.
+     *
+     * @return WarshallStep, описывающий текущее состояние.
      */
     fun currentStep(): WarshallStep {
         return buildStep(k, i, j, message, matrix)
     }
 
     /**
-     * Выполняет один шаг алгоритма Уоршелла и возвращает состояние этого шага.
-     * Внимание: состояние "начальное" (до шагов) не считается шагом алгоритма!
+     * Выполняет один шаг алгоритма Уоршелла и возвращает снимок состояния после шага.
+     * Сохраняет историю для возможности отката.
+     * Если алгоритм уже завершён, просто возвращает последнее состояние.
+     *
+     * @return WarshallStep после текущего шага.
      */
     fun stepForward(): WarshallStep {
         if (finished) {
@@ -85,7 +108,10 @@ class WarshallStepper(private val startMatrix: Array<IntArray>) {
     }
 
     /**
-     * Шаг назад: возвращает WarshallStep соответствующий предыдущему состоянию
+     * Откатывает состояние на один шаг назад.
+     * Если история пуста, возвращает текущее состояние без изменений.
+     *
+     * @return WarshallStep — состояние после отката.
      */
     fun stepBack(): WarshallStep {
         if (history.isNotEmpty()) {
@@ -102,7 +128,7 @@ class WarshallStepper(private val startMatrix: Array<IntArray>) {
     }
 
     /**
-     * Полный сброс
+     * Полностью сбрасывает состояние степпера в начальное, очищая историю шагов.
      */
     fun reset() {
         k = 0
@@ -114,12 +140,26 @@ class WarshallStepper(private val startMatrix: Array<IntArray>) {
         history.clear()
     }
 
+    /**
+     * Проверяет, завершён ли алгоритм (все k, i, j обработаны).
+     *
+     * @return true, если выполнение завершено; иначе — false.
+     */
     fun isFinished(): Boolean = finished
 
     /**
-     * Формирует шаг для визуализации состояния
+     * Формирует WarshallStep для визуализации текущего состояния.
+     *
+     * @param k Текущий индекс промежуточной вершины.
+     * @param i Текущий исходный узел.
+     * @param j Текущий целевой узел.
+     * @param msg Сообщение для визуализации.
+     * @param mat Матрица текущего состояния.
+     * @return WarshallStep с актуальной информацией.
      */
-    private fun buildStep(k: Int, i: Int, j: Int, msg: String, mat: Array<IntArray>): WarshallStep {
+    private fun buildStep(
+        k: Int, i: Int, j: Int, msg: String, mat: Array<IntArray>
+    ): WarshallStep {
         val involved = mutableListOf<Triple<Int, Int, String>>()
         if (!finished) {
             if (i < n && k < n) involved.add(Triple(i, k, "candidate"))

@@ -7,7 +7,27 @@ import javafx.scene.text.Font
 import javafx.scene.paint.Color
 import kotlin.math.*
 
+/**
+ * Вспомогательные функции для визуализации графа на Pane.
+ *
+ * Используется для отрисовки рёбер, луп, вершин, drag'n'drop перемещений,
+ * а также для подсветки текущих шагов алгоритма Уоршелла.
+ */
 object GraphDrawingUtils {
+
+    /**
+     * Перерисовывает граф: вершины, рёбра, лупы и лейблы.
+     *
+     * @param graphLayer Слой (Pane), на который всё рисуется.
+     * @param matrixInput Матрица смежности (в т.ч. для получения содержимого и текстовых полей).
+     * @param size Размер графа (количество вершин).
+     * @param highlights Подсветки рёбер/вершин [(i, j, тип)], например, "added", "candidate".
+     * @param nodePositions Список координат вершин (обновляется при drag).
+     * @param edgeMap Мапа рёбер (i, j) → (Line, Polygon).
+     * @param nodeMap Мапа вершин (i) → Circle.
+     * @param onVertexClicked Callback для клика по вершине (передаёт номер вершины).
+     * @param selectedNodes Список выделенных вершин (по умолчанию пуст).
+     */
     fun updateVisualizationNodes(
         graphLayer: Pane,
         matrixInput: MatrixInput,
@@ -151,7 +171,16 @@ object GraphDrawingUtils {
         nodeLabels.forEach { graphLayer.children.add(it) }
     }
 
-    // Перерисовать только рёбра (при drag)
+    /**
+     * Перерисовывает только рёбра (без вершин и лейблов).
+     * Используется при перемещении (drag'n'drop) вершины.
+     *
+     * @param graphLayer Слой для рёбер.
+     * @param nodePositions Координаты всех вершин.
+     * @param matrixInput Матрица смежности.
+     * @param highlights Текущие подсветки рёбер.
+     * @param edgeMap Мапа для хранения новых рёбер.
+     */
     private fun redrawEdges(
         graphLayer: Pane,
         nodePositions: List<Pair<Double, Double>>,
@@ -205,6 +234,16 @@ object GraphDrawingUtils {
         }
     }
 
+    /**
+     * Рисует ориентированное ребро (Line+Polygon-стрелка) между двумя точками.
+     * Рёбра корректно укорачиваются до границ кружков.
+     *
+     * @param fromX X-координата начальной вершины.
+     * @param fromY Y-координата начальной вершины.
+     * @param toX X-координата конечной вершины.
+     * @param toY Y-координата конечной вершины.
+     * @return Пара (Line, Polygon-стрелка).
+     */
     private fun drawArrow(fromX: Double, fromY: Double, toX: Double, toY: Double): Pair<Line, Polygon> {
         val dx = toX - fromX
         val dy = toY - fromY
@@ -233,7 +272,15 @@ object GraphDrawingUtils {
         return line to arrow
     }
 
-
+    /**
+     * Рисует "луп" (петлю) на вершине.
+     *
+     * @param x X-координата вершины.
+     * @param y Y-координата вершины.
+     * @param cx X-координата центра сцены (для отступа).
+     * @param cy Y-координата центра сцены.
+     * @return Круг (Circle), стилизованный как лупа.
+     */
     private fun drawLoop(x: Double, y: Double, cx: Double, cy: Double): Circle {
         val loopRadius = 16.0
         val shift = 24.0

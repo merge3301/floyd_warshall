@@ -14,24 +14,45 @@ import ui.ControlPanel
 import ui.GraphPanel
 import ui.MatrixInput
 
+/**
+ * Основное приложение JavaFX для визуализации алгоритма Уоршелла (транзитивное замыкание).
+ *
+ * Строит интерфейс из трёх основных компонентов:
+ * - Панель ввода матрицы (слева, MatrixInput)
+ * - Область визуализации графа (справа, GraphPanel)
+ * - Нижняя панель управления (ControlPanel) и статус-бар
+ *
+ * Все компоненты связаны между собой для интерактивного поэтапного выполнения алгоритма.
+ */
 class WarshallVisualizerApp : Application() {
-    // Многострочный статус
+    /**
+     * Многострочный статус-лейбл для отображения текущего состояния.
+     */
     private val statusLabel = Label("Статус: Готов к запуску").apply {
         isWrapText = true
         minHeight = 38.0
         maxHeight = 80.0
         style = "-fx-font-size: 14px;"
     }
+
+    /**
+     * Лейбл для текущих индексов алгоритма (итерация по k, i, j).
+     */
     private val iterationLabel = Label("Итерация: 0").apply {
         style = "-fx-font-size: 13px;"
     }
 
+    /**
+     * Точка входа JavaFX. Формирует все компоненты интерфейса, размещает их в окне.
+     *
+     * @param primaryStage Главная сцена приложения.
+     */
     override fun start(primaryStage: Stage) {
         val root = BorderPane()
         val matrixInput = MatrixInput()
         val graphPanel = GraphPanel(matrixInput)
 
-        // Прокидываем все компоненты для поэтапного контроля
+        // Панель управления, получает ссылки на все компоненты и статус-лейблы
         val controlPanel = ControlPanel(
             graphPanel,
             matrixInput,
@@ -39,6 +60,7 @@ class WarshallVisualizerApp : Application() {
             iterationLabel
         )
 
+        // Область с прокруткой для ввода матрицы
         val inputScroll = ScrollPane(matrixInput.view).apply {
             prefWidth = 330.0
             isFitToWidth = true
@@ -50,7 +72,7 @@ class WarshallVisualizerApp : Application() {
 
         root.center = splitPane
 
-        // Нижняя панель: control panel + статус-бар
+        // Нижняя панель: ControlPanel и статус-бар
         val bottomBox = VBox(
             controlPanel.view,
             makeStatusBar()
@@ -64,6 +86,11 @@ class WarshallVisualizerApp : Application() {
         primaryStage.show()
     }
 
+    /**
+     * Формирует статус-бар с лейблами состояния и текущей итерации.
+     *
+     * @return HBox — горизонтальная панель для нижней части окна.
+     */
     private fun makeStatusBar(): HBox {
         val bar = HBox(30.0, statusLabel, iterationLabel)
         bar.padding = Insets(7.0, 15.0, 7.0, 15.0)
@@ -74,10 +101,11 @@ class WarshallVisualizerApp : Application() {
         statusLabel.maxWidth = Double.MAX_VALUE
         return bar
     }
-
 }
 
-
+/**
+ * Точка входа для запуска приложения.
+ */
 fun main() {
     Application.launch(WarshallVisualizerApp::class.java)
 }
