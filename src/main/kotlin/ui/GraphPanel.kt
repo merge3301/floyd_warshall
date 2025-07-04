@@ -47,6 +47,7 @@ class GraphPanel(val matrixInput: MatrixInput) {
                 paneOriginY = graphLayer.translateY
             }
         }
+
         view.setOnMouseDragged {
             if (it.button == MouseButton.PRIMARY) {
                 graphLayer.translateX = paneOriginX + (it.sceneX - dragOriginX)
@@ -62,12 +63,10 @@ class GraphPanel(val matrixInput: MatrixInput) {
             }
         }
 
-        // Слушатель для sizeSpinner — только добавляем новые позиции
         matrixInput.sizeSpinner.valueProperty().addListener { _: ObservableValue<out Int>?, oldSize, newSize ->
             val old = oldSize as? Int ?: nodePositions.size
             val newS = newSize as Int
             if (newS > old) {
-                // Добавить новые позиции на окружности (или по какому-то своему правилу)
                 val radius = 175.0
                 val centerX = 600.0
                 val centerY = 600.0
@@ -78,7 +77,6 @@ class GraphPanel(val matrixInput: MatrixInput) {
                     nodePositions.add(Pair(x, y))
                 }
             } else if (newS < old && newS < nodePositions.size) {
-                // Удалить лишние
                 while (nodePositions.size > newS) nodePositions.removeAt(nodePositions.size - 1)
             }
             setupFieldListeners(newS)
@@ -87,7 +85,6 @@ class GraphPanel(val matrixInput: MatrixInput) {
 
         setupFieldListeners(matrixInput.sizeSpinner.value)
         if (nodePositions.isEmpty()) {
-            // Инициализация для старта
             val size = matrixInput.sizeSpinner.value
             val radius = 175.0
             val centerX = 600.0
@@ -102,7 +99,6 @@ class GraphPanel(val matrixInput: MatrixInput) {
         updateVisualizationNodes(matrixInput.sizeSpinner.value)
     }
 
-    // Главный метод для визуализации: все выделения только через параметры!
     fun updateGraph(
         matrix: Array<IntArray>,
         highlights: List<Triple<Int, Int, String>> = emptyList(),
@@ -143,20 +139,13 @@ class GraphPanel(val matrixInput: MatrixInput) {
     }
 
     private fun addNewNode(x: Double, y: Double) {
-        // Просто добавляем одну новую позицию вручную!
-        matrixInput.sizeSpinner.valueFactory.value = matrixInput.sizeSpinner.valueFactory.value + 1
+        matrixInput.sizeSpinner.valueFactory.value += 1
         nodePositions.add(Pair(x, y))
         updateVisualizationNodes(matrixInput.sizeSpinner.value)
     }
 
-    private fun overNode(x: Double, y: Double): Boolean {
-        for ((_, pos) in nodePositions.withIndex()) {
-            val dx = x - pos.first
-            val dy = y - pos.second
-            if (dx * dx + dy * dy < 24.0 * 24.0) return true
-        }
-        return false
-    }
+    private fun overNode(x: Double, y: Double): Boolean =
+        nodePositions.any { (nx, ny) -> hypot(nx - x, ny - y) < 24.0 }
 
     private fun updateVisualizationNodes(
         size: Int,

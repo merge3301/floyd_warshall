@@ -15,8 +15,10 @@ class ControlPanel(
     private val iterationLabel: Label
 ) {
     val startButton = Button("Запуск")
-    val stepForward = Button("Шаг >")
     val stepBack = Button("< Шаг")
+    val stepSmall = Button("Малый >")     // по j
+    val stepMedium = Button("Средний >>") // по i
+    val stepBig = Button("Крупный >>>")   // по k
     val resetButton = Button("Сброс")
     val runAllButton = Button("Выполнить всё")
     val helpButton = Button("Справка")
@@ -32,7 +34,9 @@ class ControlPanel(
     private var finishedLogged = false
 
     init {
-        val controlBar = HBox(15.0, startButton, stepForward, stepBack, runAllButton, resetButton, helpButton).apply {
+        val controlBar = HBox(
+            15.0, startButton, stepBack, stepSmall, stepMedium, stepBig, runAllButton, resetButton, helpButton
+        ).apply {
             padding = Insets(10.0)
             alignment = Pos.CENTER
             style = "-fx-background-color: #f0f8ff;"
@@ -41,28 +45,23 @@ class ControlPanel(
         view = VBox(10.0, controlBar, logArea).apply {
             padding = Insets(10.0)
         }
+
         startButton.setOnAction {
             val matrix = matrixInput.getMatrix()
             warshallStepper = WarshallStepper(matrix)
             logArea.clear()
             finishedLogged = false
             log("▶️ Запуск алгоритма Уоршелла")
+            matrixInput.clearHeaderHighlights()
             val step = warshallStepper!!.currentStep()
             logStep(step)
             updateStep(step)
-            stepForward.isDisable = false
-            runAllButton.isDisable = false
+            setStepButtonsEnabled(true)
         }
 
-        stepForward.setOnAction {
-            val stepper = warshallStepper
-            if (stepper != null && !stepper.isFinished()) {
-                val step = stepper.stepForward()
-                logStep(step)
-                updateStep(step)
-                checkFinished(stepper)
-            }
-        }
+        stepSmall.setOnAction { doSmallStep() }
+        stepMedium.setOnAction { doMediumStep() }
+        stepBig.setOnAction { doBigStep() }
 
         stepBack.setOnAction {
             val stepper = warshallStepper
@@ -71,8 +70,7 @@ class ControlPanel(
                 logStep(step)
                 updateStep(step)
                 if (!stepper.isFinished()) {
-                    stepForward.isDisable = false
-                    runAllButton.isDisable = false
+                    setStepButtonsEnabled(true)
                     finishedLogged = false
                 }
             }
@@ -82,11 +80,11 @@ class ControlPanel(
             warshallStepper?.reset()
             finishedLogged = false
             log("🔄 Алгоритм сброшен к начальному состоянию")
+            matrixInput.clearHeaderHighlights()
             val step = warshallStepper!!.currentStep()
             logStep(step)
             updateStep(step)
-            stepForward.isDisable = false
-            runAllButton.isDisable = false
+            setStepButtonsEnabled(true)
         }
 
         runAllButton.setOnAction {
@@ -111,9 +109,11 @@ class ControlPanel(
 
                 Вы можете:
                 • Ввести матрицу смежности вручную или сгенерировать случайно.
-                • Нажать "Запуск" — чтобы начать поэтапный просмотр.
-                • Использовать "Шаг >" для пошагового выполнения алгоритма.
-                • Использовать "< Шаг" для возврата на один шаг назад.
+                • "Запуск" — начать поэтапный просмотр.
+                • "< Шаг" — шаг назад.
+                • "Малый >" — шаг по j (ячейка).
+                • "Средний >>" — шаг по i (строка).
+                • "Крупный >>>" — шаг по k (слой).
                 • "Выполнить всё" — получить финальный результат за один клик.
                 • "Сброс" — возвращает начальное состояние.
                 • На каждом шаге в статусе отображается подробное пояснение.
@@ -127,17 +127,68 @@ class ControlPanel(
             finishedLogged = true
             log("✅ Алгоритм завершён.")
             statusLabel.text = "Статус: Алгоритм завершён."
-            stepForward.isDisable = true
-            runAllButton.isDisable = true
+            setStepButtonsEnabled(false)
+            matrixInput.clearHeaderHighlights()
+        }
+    }
+
+    private fun setStepButtonsEnabled(state: Boolean) {
+        runAllButton.isDisable = !state
+        stepSmall.isDisable = !state
+        stepMedium.isDisable = !state
+        stepBig.isDisable = !state
+    }
+
+    private fun doSmallStep() {
+        val stepper = warshallStepper
+        if (stepper != null && !stepper.isFinished()) {
+            val step = stepper.stepForward()
+            logStep(step)
+            updateStep(step)
+            checkFinished(stepper)
+        }
+    }
+
+    private fun doMediumStep() {
+        val stepper = warshallStepper
+        if (stepper != null && !stepper.isFinished()) {
+            var step: WarshallStep? = null
+            val startI = stepper.currentStep().i
+            val startK = stepper.currentStep().k
+            do {
+                step = stepper.stepForward()
+                if (step != null) logStep(step)
+            } while (!stepper.isFinished() && (step?.i == startI && step.k == startK))
+            step?.let {
+                updateStep(it)
+                checkFinished(stepper)
+            }
+        }
+    }
+
+    private fun doBigStep() {
+        val stepper = warshallStepper
+        if (stepper != null && !stepper.isFinished()) {
+            var step: WarshallStep? = null
+            val startK = stepper.currentStep().k
+            do {
+                step = stepper.stepForward()
+                if (step != null) logStep(step)
+            } while (!stepper.isFinished() && step?.k == startK)
+            step?.let {
+                updateStep(it)
+                checkFinished(stepper)
+            }
         }
     }
 
     private fun updateStep(step: WarshallStep) {
         matrixInput.updateMatrixDisplay(step.matrix)
-        matrixInput.clearHighlights()                    // <-- сброс перед каждым шагом
+        matrixInput.clearHighlights()
         if (step.involved.isNotEmpty()) {
-            matrixInput.highlightCells(step.involved)    // <-- подсвечиваем только нужные
+            matrixInput.highlightCells(step.involved)
         }
+        matrixInput.highlightHeader(step.k)  // <-- Подсветка k
         graphPanel.updateGraph(
             step.matrix,
             highlights = step.involved,
@@ -157,5 +208,4 @@ class ControlPanel(
     private fun logStep(step: WarshallStep) {
         log("Шаг: k=${step.k + 1}, i=${step.i + 1}, j=${step.j + 1} — ${step.message}")
     }
-
 }

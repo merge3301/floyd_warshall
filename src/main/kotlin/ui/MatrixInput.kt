@@ -21,6 +21,10 @@ class MatrixInput {
 
     val matrixFields = mutableListOf<MutableList<TextField>>()
 
+    // --- Ссылки на заголовки
+    private val colHeaders = mutableListOf<Label>()
+    private val rowHeaders = mutableListOf<Label>()
+
     init {
         sizeSpinner.isEditable = true
         edgeSpinner.isEditable = true
@@ -75,16 +79,21 @@ class MatrixInput {
 
         matrixGrid.children.clear()
         matrixFields.clear()
+        colHeaders.clear()
+        rowHeaders.clear()
 
+        // Заголовки столбцов
         for (j in 0 until size) {
             val label = styledHeaderLabel(j + 1)
+            colHeaders.add(label)
             matrixGrid.add(label, j + 1, 0)
         }
 
+        // Строки и заголовки строк
         for (i in 0 until size) {
             val row = mutableListOf<TextField>()
-
             val rowLabel = styledHeaderLabel(i + 1)
+            rowHeaders.add(rowLabel)
             matrixGrid.add(rowLabel, 0, i + 1)
 
             for (j in 0 until size) {
@@ -98,7 +107,6 @@ class MatrixInput {
 
                 if (i == j) {
                     field.isEditable = false
-                    field.style = BASE_DIAGONAL_STYLE
                 } else {
                     field.focusedProperty().addListener { _, wasFocused, isFocused ->
                         if (wasFocused && !isFocused) {
@@ -114,11 +122,9 @@ class MatrixInput {
                         }
                     }
                 }
-
                 row.add(field)
                 matrixGrid.add(field, j + 1, i + 1)
             }
-
             matrixFields.add(row)
         }
     }
@@ -155,7 +161,6 @@ class MatrixInput {
                 matrixFields[i][j].text = if (matrix[i][j] == 1) "1" else "0"
             }
         }
-
     }
 
     /** ---- ПОДСВЕТКА ---- */
@@ -163,11 +168,7 @@ class MatrixInput {
     fun highlightCell(i: Int, j: Int, color: String = "#fff59d") {
         if (i in matrixFields.indices && j in matrixFields[i].indices) {
             val field = matrixFields[i][j]
-            // Всегда замени стиль полностью!
-            field.style = if (i == j)
-                BASE_DIAGONAL_STYLE
-            else
-                "-fx-background-color: $color; -fx-text-fill: #222222;"
+            field.style = "-fx-background-color: $color; -fx-text-fill: #222222;"
         }
     }
 
@@ -186,13 +187,26 @@ class MatrixInput {
     fun clearHighlights() {
         for (i in matrixFields.indices) {
             for (j in matrixFields[i].indices) {
-                val field = matrixFields[i][j]
-                field.style = if (i == j) BASE_DIAGONAL_STYLE else ""
+                matrixFields[i][j].style = ""
             }
+        }
+        clearHeaderHighlights()
+    }
+
+    /** ---- ПОДСВЕТКА ЗАГОЛОВКОВ ---- */
+    fun highlightHeader(k: Int, color: String = "#ffd54f") {
+        clearHeaderHighlights()
+        if (k in colHeaders.indices) {
+            colHeaders[k].style = "-fx-background-color: $color; -fx-text-fill: #000;"
+        }
+        if (k in rowHeaders.indices) {
+            rowHeaders[k].style = "-fx-background-color: $color; -fx-text-fill: #000;"
         }
     }
 
-    companion object {
-        private const val BASE_DIAGONAL_STYLE = "-fx-background-color: #dddddd; -fx-text-fill: #aaaaaa;"
+    fun clearHeaderHighlights() {
+        for (label in colHeaders + rowHeaders) {
+            label.style = "-fx-text-fill: #333333; -fx-effect: dropshadow(one-pass-box, #bbbbbb, 1, 0.0, 0.5, 0.5);"
+        }
     }
 }
