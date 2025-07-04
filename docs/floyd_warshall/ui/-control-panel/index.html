@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html class="no-js">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>ControlPanel</title>
+    <link href="../../../images/logo-icon.svg" rel="icon" type="image/svg">
+    <script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js","js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+    if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    } else {
+        const savedDarkMode = JSON.parse(storage)
+        if(savedDarkMode === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    }
+    </script>
+<script type="text/javascript" src="https://unpkg.com/kotlin-playground@1/dist/playground.min.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async="async"></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../styles/font-jb-sans-auto.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/clipboard.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer="defer"></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/symbol-parameters-wrapper_deferred.js" defer="defer"></script>
+</head>
+<body>
+    <div class="root">
+<nav class="navigation" id="navigation-wrapper">
+    <div class="navigation--inner">
+        <div class="navigation-title">
+            <button class="menu-toggle" id="menu-toggle" type="button">toggle menu</button>
+            <div class="library-name">
+                    <a class="library-name--link" href="../../../index.html">
+                            floyd_warshall
+                    </a>
+            </div>
+            <div class="library-version">
+            </div>
+        </div>
+        <div class="filter-section" id="filter-section">
+                <button class="platform-tag platform-selector jvm-like" data-active="" data-filter=":dokkaHtml/main">jvm</button>
+        </div>
+    </div>
+    <div class="navigation-controls">
+        <button class="navigation-controls--btn navigation-controls--theme" id="theme-toggle-button" type="button">switch theme</button>
+        <div class="navigation-controls--btn navigation-controls--search" id="searchBar" role="button">search in API</div>
+    </div>
+</nav>
+        <div id="container">
+            <div class="sidebar" id="leftColumn">
+                <div class="sidebar--inner" id="sideMenu"></div>
+            </div>
+            <div id="main">
+<div class="main-content" data-page-type="classlike" id="content" pageIds="floyd_warshall::ui/ControlPanel///PointingToDeclaration//769193423">
+  <div class="breadcrumbs"><a href="../../../index.html">floyd_warshall</a><span class="delimiter">/</span><a href="../index.html">ui</a><span class="delimiter">/</span><span class="current">ControlPanel</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>Control</span><wbr></wbr><span><span>Panel</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">ControlPanel</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">graphPanel<span class="token operator">: </span><a href="../-graph-panel/index.html">GraphPanel</a><span class="token punctuation">, </span></span><span class="parameter ">matrixInput<span class="token operator">: </span><a href="../-matrix-input/index.html">MatrixInput</a><span class="token punctuation">, </span></span><span class="parameter ">statusLabel<span class="token operator">: </span><span data-unresolved-link="javafx.scene.control/Label///PointingToDeclaration/">Label</span><span class="token punctuation">, </span></span><span class="parameter ">iterationLabel<span class="token operator">: </span><span data-unresolved-link="javafx.scene.control/Label///PointingToDeclaration/">Label</span></span></span><span class="token punctuation">)</span></div><p class="paragraph">Панель управления для визуализатора алгоритма Уоршелла.</p><p class="paragraph">Отвечает за запуск, поэтапное выполнение, откат и сброс алгоритма, отображение лога и статуса, а также за обновление визуализации графа и матрицы на каждом шаге.</p></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="CONSTRUCTOR">
+        <h2 class="">Constructors</h2>
+        <div class="table"><a data-name="7778439%2FConstructors%2F769193423" anchor-label="ControlPanel" id="7778439%2FConstructors%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+          <div class="table-row" data-togglable="CONSTRUCTOR" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-control-panel.html"><span>Control</span><wbr></wbr><span><span>Panel</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="7778439%2FConstructors%2F769193423"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">graphPanel<span class="token operator">: </span><a href="../-graph-panel/index.html">GraphPanel</a><span class="token punctuation">, </span></span><span class="parameter ">matrixInput<span class="token operator">: </span><a href="../-matrix-input/index.html">MatrixInput</a><span class="token punctuation">, </span></span><span class="parameter ">statusLabel<span class="token operator">: </span><span data-unresolved-link="javafx.scene.control/Label///PointingToDeclaration/">Label</span><span class="token punctuation">, </span></span><span class="parameter ">iterationLabel<span class="token operator">: </span><span data-unresolved-link="javafx.scene.control/Label///PointingToDeclaration/">Label</span></span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="PROPERTY">
+        <h2 class="">Properties</h2>
+        <div class="table"><a data-name="-1967540195%2FProperties%2F769193423" anchor-label="helpButton" id="-1967540195%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="help-button.html"><span>help</span><wbr></wbr><span><span>Button</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1967540195%2FProperties%2F769193423"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="help-button.html">helpButton</a><span class="token operator">: </span><span data-unresolved-link="javafx.scene.control/Button///PointingToDeclaration/">Button</span></div><div class="brief "><p class="paragraph">Кнопка вызова справки</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="777185529%2FProperties%2F769193423" anchor-label="logArea" id="777185529%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="log-area.html"><span>log</span><wbr></wbr><span><span>Area</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="777185529%2FProperties%2F769193423"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="log-area.html">logArea</a><span class="token operator">: </span><span data-unresolved-link="javafx.scene.control/TextArea///PointingToDeclaration/">TextArea</span></div><div class="brief "><p class="paragraph">Область для текстового лога шагов</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1271579913%2FProperties%2F769193423" anchor-label="resetButton" id="1271579913%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="reset-button.html"><span>reset</span><wbr></wbr><span><span>Button</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1271579913%2FProperties%2F769193423"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="reset-button.html">resetButton</a><span class="token operator">: </span><span data-unresolved-link="javafx.scene.control/Button///PointingToDeclaration/">Button</span></div><div class="brief "><p class="paragraph">Кнопка сброса состояния</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1472867560%2FProperties%2F769193423" anchor-label="runAllButton" id="1472867560%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="run-all-button.html"><span>run</span><wbr></wbr><span>All</span><wbr></wbr><span><span>Button</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1472867560%2FProperties%2F769193423"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="run-all-button.html">runAllButton</a><span class="token operator">: </span><span data-unresolved-link="javafx.scene.control/Button///PointingToDeclaration/">Button</span></div><div class="brief "><p class="paragraph">Кнопка мгновенного выполнения алгоритма</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-562693226%2FProperties%2F769193423" anchor-label="startButton" id="-562693226%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="start-button.html"><span>start</span><wbr></wbr><span><span>Button</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-562693226%2FProperties%2F769193423"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="start-button.html">startButton</a><span class="token operator">: </span><span data-unresolved-link="javafx.scene.control/Button///PointingToDeclaration/">Button</span></div><div class="brief "><p class="paragraph">Кнопка запуска нового прохода алгоритма</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-357088035%2FProperties%2F769193423" anchor-label="stepBack" id="-357088035%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="step-back.html"><span>step</span><wbr></wbr><span><span>Back</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-357088035%2FProperties%2F769193423"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="step-back.html">stepBack</a><span class="token operator">: </span><span data-unresolved-link="javafx.scene.control/Button///PointingToDeclaration/">Button</span></div><div class="brief "><p class="paragraph">Кнопка шага назад</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1381170762%2FProperties%2F769193423" anchor-label="stepBig" id="-1381170762%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="step-big.html"><span>step</span><wbr></wbr><span><span>Big</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1381170762%2FProperties%2F769193423"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="step-big.html">stepBig</a><span class="token operator">: </span><span data-unresolved-link="javafx.scene.control/Button///PointingToDeclaration/">Button</span></div><div class="brief "><p class="paragraph">Кнопка &quot;крупного&quot; шага (по k)</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1565108303%2FProperties%2F769193423" anchor-label="stepMedium" id="1565108303%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="step-medium.html"><span>step</span><wbr></wbr><span><span>Medium</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1565108303%2FProperties%2F769193423"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="step-medium.html">stepMedium</a><span class="token operator">: </span><span data-unresolved-link="javafx.scene.control/Button///PointingToDeclaration/">Button</span></div><div class="brief "><p class="paragraph">Кнопка &quot;среднего&quot; шага (по i)</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="260068687%2FProperties%2F769193423" anchor-label="stepSmall" id="260068687%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="step-small.html"><span>step</span><wbr></wbr><span><span>Small</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="260068687%2FProperties%2F769193423"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="step-small.html">stepSmall</a><span class="token operator">: </span><span data-unresolved-link="javafx.scene.control/Button///PointingToDeclaration/">Button</span></div><div class="brief "><p class="paragraph">Кнопка &quot;малого&quot; шага (по j)</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1061407285%2FProperties%2F769193423" anchor-label="view" id="-1061407285%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="view.html"><span><span>view</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1061407285%2FProperties%2F769193423"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="view.html">view</a><span class="token operator">: </span><span data-unresolved-link="javafx.scene.layout/VBox///PointingToDeclaration/">VBox</span></div><div class="brief "><p class="paragraph">Основное view — содержит панель кнопок и лог</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      <div class="footer">
+        <span class="go-to-top-icon"><a href="#content" id="go-to-top-link"></a></span><span>© 2025 Copyright</span><span
+                class="pull-right"><span>Generated by </span><a
+                href="https://github.com/Kotlin/dokka"><span>dokka</span><span class="padded-icon"></span></a></span>
+      </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
