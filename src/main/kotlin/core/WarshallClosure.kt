@@ -19,6 +19,9 @@ class WarshallStepper(private val startMatrix: Array<IntArray>) {
     private var message: String = "Начальное состояние."
     private val history = mutableListOf<WarshallStep>()
 
+    init {
+        if (n == 0 || n == 1) finished = true
+    }
     /**
      * Снимок текущего состояния (например, для отображения до первого шага)
      */
