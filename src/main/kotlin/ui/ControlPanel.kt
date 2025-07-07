@@ -16,14 +16,10 @@ import javafx.scene.layout.VBox
  *
  * @property graphPanel      Панель визуализации графа (обновляет вершины и рёбра)
  * @property matrixInput     Панель для отображения и ввода матрицы смежности
- * @property statusLabel     Label для отображения статуса выполнения
- * @property iterationLabel  Label для отображения текущих индексов k, i, j
  */
 class ControlPanel(
     private val graphPanel: GraphPanel,
-    private val matrixInput: MatrixInput,
-    private val statusLabel: Label,
-    private val iterationLabel: Label
+    private val matrixInput: MatrixInput
 ) {
     /** Кнопка запуска нового прохода алгоритма */
     val startButton = Button("Запуск")
@@ -175,7 +171,6 @@ class ControlPanel(
         matrixInput.updateMatrixDisplay(step.matrix)
         matrixInput.clearHighlights()
 
-        // убираем пунктиры, ставшие настоящими рёбрами
         val filtered = step.involved.filterNot { (i, j, t) ->
             t == "candidate" && step.matrix[i][j] == 1
         }
@@ -188,11 +183,11 @@ class ControlPanel(
             highlightedNodes = listOf(step.i, step.j, step.k)
         )
 
-        statusLabel.text = if (stepper?.isFinished() == true)
-            "Статус: Алгоритм завершён."
-        else
-            "Статус: ${step.message}"
-        iterationLabel.text = "k=${step.k + 1}, i=${step.i + 1}, j=${step.j + 1}"
+        if (stepper?.isFinished() == true) {
+            log("📘 Алгоритм завершён.")
+        } else {
+            log("${step.message} (k=${step.k + 1}, i=${step.i + 1}, j=${step.j + 1})")
+        }
     }
 
     /**
@@ -203,8 +198,6 @@ class ControlPanel(
     private fun checkFinished(st: WarshallStepper) {
         if (st.isFinished() && !finishedLogged) {
             finishedLogged = true
-            log("✅ Алгоритм завершён.")
-            statusLabel.text = "Статус: Алгоритм завершён."
             setStepButtonsEnabled(false)
             matrixInput.clearHeaderHighlights()
         }

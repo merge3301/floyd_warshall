@@ -28,19 +28,7 @@ class WarshallVisualizerApp : Application() {
     /**
      * Многострочный статус-лейбл для отображения текущего состояния.
      */
-    private val statusLabel = Label("Статус: Готов к запуску").apply {
-        isWrapText = true
-        minHeight = 38.0
-        maxHeight = 80.0
-        style = "-fx-font-size: 14px;"
-    }
 
-    /**
-     * Лейбл для текущих индексов алгоритма (итерация по k, i, j).
-     */
-    private val iterationLabel = Label("Итерация: 0").apply {
-        style = "-fx-font-size: 13px;"
-    }
 
     /**
      * Точка входа JavaFX. Формирует все компоненты интерфейса, размещает их в окне.
@@ -56,8 +44,6 @@ class WarshallVisualizerApp : Application() {
         val controlPanel = ControlPanel(
             graphPanel,
             matrixInput,
-            statusLabel,
-            iterationLabel
         )
 
         // Область с прокруткой для ввода матрицы
@@ -75,10 +61,10 @@ class WarshallVisualizerApp : Application() {
         // Нижняя панель: ControlPanel и статус-бар
         val bottomBox = VBox(
             controlPanel.view,
-            makeStatusBar()
+
         )
         VBox.setVgrow(controlPanel.view, Priority.NEVER)
-        VBox.setVgrow(statusLabel, Priority.ALWAYS)
+
         root.bottom = bottomBox
 
         primaryStage.scene = Scene(root, 1050.0, 700.0)
@@ -91,16 +77,7 @@ class WarshallVisualizerApp : Application() {
      *
      * @return HBox — горизонтальная панель для нижней части окна.
      */
-    private fun makeStatusBar(): HBox {
-        val bar = HBox(30.0, statusLabel, iterationLabel)
-        bar.padding = Insets(7.0, 15.0, 7.0, 15.0)
-        bar.alignment = Pos.CENTER_LEFT
-        bar.style = "-fx-background-color: #f5f5f5; -fx-border-color: #cccccc; -fx-border-width: 1px 0 0 0;"
-        // statusLabel тянется на всю ширину, iterationLabel — справа
-        HBox.setHgrow(statusLabel, Priority.ALWAYS)
-        statusLabel.maxWidth = Double.MAX_VALUE
-        return bar
-    }
+
 }
 
 /**
