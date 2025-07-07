@@ -11,13 +11,13 @@ import javafx.scene.layout.VBox
 /**
  * Панель управления для визуализатора алгоритма Уоршелла.
  *
- * Отвечает за запуск, поэтапное выполнение, откат и сброс алгоритма, отображение лога и статуса,
- * а также за обновление визуализации графа и матрицы на каждом шаге.
+ * Позволяет запускать, поэтапно выполнять и сбрасывать выполнение алгоритма,
+ * а также отображать шаги, статус и управляющие кнопки.
  *
- * @property graphPanel Панель визуализации графа (обновляет вершины/рёбра).
- * @property matrixInput Панель для отображения и ввода матрицы смежности.
- * @property statusLabel Строка для отображения статуса выполнения.
- * @property iterationLabel Строка с текущими индексами k, i, j.
+ * @property graphPanel      Панель визуализации графа (обновляет вершины и рёбра)
+ * @property matrixInput     Панель для отображения и ввода матрицы смежности
+ * @property statusLabel     Label для отображения статуса выполнения
+ * @property iterationLabel  Label для отображения текущих индексов k, i, j
  */
 class ControlPanel(
     private val graphPanel: GraphPanel,
@@ -27,139 +27,181 @@ class ControlPanel(
 ) {
     /** Кнопка запуска нового прохода алгоритма */
     val startButton = Button("Запуск")
-    /** Кнопка шага назад */
-    val stepBack = Button("< Шаг")
-    /** Кнопка "малого" шага (по j) */
-    val stepSmall = Button("Малый >")
-    /** Кнопка "среднего" шага (по i) */
+    /** Кнопка шага назад (откат на 1 итерацию) */
+    val stepBack   = Button("< Шаг")
+    /** Кнопка малый шаг — один шаг по j */
+    val stepSmall  = Button("Малый >")
+    /** Кнопка средний шаг — пройти строку (i фиксирован, шаги по j) */
     val stepMedium = Button("Средний >>")
-    /** Кнопка "крупного" шага (по k) */
-    val stepBig = Button("Крупный >>>")
-    /** Кнопка сброса состояния */
-    val resetButton = Button("Сброс")
-    /** Кнопка мгновенного выполнения алгоритма */
+    /** Кнопка крупный шаг — пройти слой (k фиксирован, шаги по i/j) */
+    val stepBig    = Button("Крупный >>>")
+    /** Кнопка сброса состояния (вернуть к начальному виду) */
+    val resetButton= Button("Сброс")
+    /** Кнопка полного выполнения алгоритма */
     val runAllButton = Button("Выполнить всё")
-    /** Кнопка вызова справки */
+    /** Кнопка вызова окна справки */
     val helpButton = Button("Справка")
-    /** Область для текстового лога шагов */
+
+    /** Текстовое поле для лога шагов алгоритма */
     val logArea = TextArea().apply {
         isEditable = false
         prefRowCount = 10
         prefHeight = 140.0
         style = "-fx-font-family: monospace; -fx-font-size: 12px;"
     }
-    /** Основное view — содержит панель кнопок и лог */
+
+    /** Корневой контейнер панели управления */
     val view: VBox
 
-    private var warshallStepper: WarshallStepper? = null
+    private var stepper: WarshallStepper? = null
     private var finishedLogged = false
 
     /**
-     * Инициализация кнопок, биндингов и обработчиков событий.
-     * Основная логика по запуску, шагам, сбросу, выполнению и справке.
+     * Инициализация панели: кнопки, биндинги, обработчики событий.
+     * Настраивает запуск, шаги, сброс, выполнение и справку.
      */
     init {
-        val controlBar = HBox(
-            15.0, startButton, stepBack, stepSmall, stepMedium, stepBig, runAllButton, resetButton, helpButton
+        val bar = HBox(
+            15.0,
+            startButton, stepBack, stepSmall, stepMedium, stepBig, runAllButton, resetButton, helpButton
         ).apply {
             padding = Insets(10.0)
             alignment = Pos.CENTER
             style = "-fx-background-color: #f0f8ff;"
         }
+        view = VBox(10.0, bar, logArea).apply { padding = Insets(10.0) }
 
-        view = VBox(10.0, controlBar, logArea).apply {
-            padding = Insets(10.0)
-        }
-
-        // --- Кнопка запуска
+        // --- запуск алгоритма ---
         startButton.setOnAction {
-            val matrix = matrixInput.getMatrix()
-            warshallStepper = WarshallStepper(matrix)
-            logArea.clear()
-            finishedLogged = false
-            log("▶️ Запуск алгоритма Уоршелла")
-            matrixInput.clearHeaderHighlights()
-            val step = warshallStepper!!.currentStep()
-            logStep(step)
-            updateStep(step)
-            setStepButtonsEnabled(true)
+            stepper = WarshallStepper(matrixInput.getMatrix()).also { st ->
+                logArea.clear()
+                finishedLogged = false
+                log("▶️ Запуск алгоритма Уоршелла")
+                matrixInput.clearHeaderHighlights()
+                updateStep(st.currentStep())
+                setStepButtonsEnabled(true)
+            }
         }
 
-        // --- Шаги алгоритма
+        // --- пошаговые действия ---
         stepSmall.setOnAction { doSmallStep() }
         stepMedium.setOnAction { doMediumStep() }
         stepBig.setOnAction { doBigStep() }
+        stepBack.setOnAction  { doBack() }
 
-        // --- Откат
-        stepBack.setOnAction {
-            val stepper = warshallStepper
-            if (stepper != null) {
-                val step = stepper.stepBack()
-                logStep(step)
-                updateStep(step)
-                if (!stepper.isFinished()) {
-                    setStepButtonsEnabled(true)
-                    finishedLogged = false
-                }
-            }
-        }
-
-        // --- Сброс
+        // --- сброс ---
         resetButton.setOnAction {
-            warshallStepper?.reset()
+            stepper?.reset()
             finishedLogged = false
-            log("🔄 Алгоритм сброшен к начальному состоянию")
+            log("🔄 Алгоритм сброшен")
             matrixInput.clearHeaderHighlights()
-            val step = warshallStepper!!.currentStep()
-            logStep(step)
-            updateStep(step)
+            stepper?.currentStep()?.let { updateStep(it) }
             setStepButtonsEnabled(true)
         }
 
-        // --- Выполнить всё
+        // --- выполнение до конца ---
         runAllButton.setOnAction {
-            val stepper = warshallStepper
-            if (stepper != null && !stepper.isFinished()) {
-                while (!stepper.isFinished()) {
-                    val step = stepper.stepForward()
-                    logStep(step)
-                }
-                val step = stepper.currentStep()
-                updateStep(step)
-                checkFinished(stepper)
-            }
+            val st = stepper ?: return@setOnAction
+            while (!st.isFinished()) { logStep(st.stepForward()) }
+            updateStep(st.currentStep())
+            checkFinished(st)
         }
 
-        // --- Справка
-        helpButton.setOnAction {
-            val alert = Alert(Alert.AlertType.INFORMATION)
-            alert.title = "Справка"
-            alert.headerText = "О программе: Транзитивное замыкание (алгоритм Уоршелла)"
-            alert.contentText = """
-                Эта программа позволяет вычислить транзитивное замыкание ориентированного графа с помощью алгоритма Уоршелла.
+        // --- справка ---
+        helpButton.setOnAction { showHelp() }
+    }
 
-                Вы можете:
-                • Ввести матрицу смежности вручную или сгенерировать случайно.
-                • "Запуск" — начать поэтапный просмотр.
-                • "< Шаг" — шаг назад.
-                • "Малый >" — шаг по j (ячейка).
-                • "Средний >>" — шаг по i (строка).
-                • "Крупный >>>" — шаг по k (слой).
-                • "Выполнить всё" — получить финальный результат за один клик.
-                • "Сброс" — возвращает начальное состояние.
-                • На каждом шаге в статусе отображается подробное пояснение.
-            """.trimIndent()
-            alert.showAndWait()
+    // ─────────────────── Логика пошагового выполнения ───────────────────
+
+    /**
+     * Выполняет малый шаг (одна итерация по j).
+     */
+    private fun doSmallStep() {
+        stepper?.let { if (!it.isFinished()) { updateStep(it.stepForward()); checkFinished(it) } }
+    }
+
+    /**
+     * Выполняет шаг назад (откат на одну итерацию).
+     */
+    private fun doBack() {
+        stepper?.let {
+            updateStep(it.stepBack())
+            finishedLogged = false
+            setStepButtonsEnabled(true)
         }
+    }
+
+    /**
+     * Выполняет средний шаг (до смены строки i).
+     */
+    private fun doMediumStep() {
+        val st = stepper ?: return
+        if (st.isFinished()) return
+        val startI = st.currentStep().i
+        val startK = st.currentStep().k
+        var step: WarshallStep
+        do {
+            step = st.stepForward()
+            logStep(step)
+        } while (!st.isFinished() && step.i == startI && step.k == startK)
+        updateStep(step)
+        checkFinished(st)
+    }
+
+    /**
+     * Выполняет крупный шаг (до смены слоя k).
+     */
+    private fun doBigStep() {
+        val st = stepper ?: return
+        if (st.isFinished()) return
+        val startK = st.currentStep().k
+        var step: WarshallStep
+        do {
+            step = st.stepForward()
+            logStep(step)
+        } while (!st.isFinished() && step.k == startK)
+        updateStep(step)
+        checkFinished(st)
+    }
+
+    // ─────────────────── Обновление интерфейса ───────────────────
+
+    /**
+     * Обновляет визуализацию матрицы и графа после очередного шага.
+     *
+     * @param step Текущее состояние (WarshallStep)
+     */
+    private fun updateStep(step: WarshallStep) {
+        matrixInput.updateMatrixDisplay(step.matrix)
+        matrixInput.clearHighlights()
+
+        // убираем пунктиры, ставшие настоящими рёбрами
+        val filtered = step.involved.filterNot { (i, j, t) ->
+            t == "candidate" && step.matrix[i][j] == 1
+        }
+        if (filtered.isNotEmpty()) matrixInput.highlightCells(filtered)
+        matrixInput.highlightHeader(step.k)
+
+        graphPanel.updateGraph(
+            step.matrix,
+            highlights = filtered,
+            highlightedNodes = listOf(step.i, step.j, step.k)
+        )
+
+        statusLabel.text = if (stepper?.isFinished() == true)
+            "Статус: Алгоритм завершён."
+        else
+            "Статус: ${step.message}"
+        iterationLabel.text = "k=${step.k + 1}, i=${step.i + 1}, j=${step.j + 1}"
     }
 
     /**
      * Проверяет завершён ли алгоритм и блокирует шаги, если да.
      *
-     * @param stepper Текущий исполнитель алгоритма.
+     * @param st Экземпляр WarshallStepper
      */
-    private fun checkFinished(stepper: WarshallStepper) {
-        if (stepper.isFinished() && !finishedLogged) {
+    private fun checkFinished(st: WarshallStepper) {
+        if (st.isFinished() && !finishedLogged) {
             finishedLogged = true
             log("✅ Алгоритм завершён.")
             statusLabel.text = "Статус: Алгоритм завершён."
@@ -171,7 +213,7 @@ class ControlPanel(
     /**
      * Включает или отключает кнопки выполнения шагов.
      *
-     * @param state true — кнопки включены; false — выключены.
+     * @param state true — кнопки включены, false — отключены
      */
     private fun setStepButtonsEnabled(state: Boolean) {
         runAllButton.isDisable = !state
@@ -180,97 +222,36 @@ class ControlPanel(
         stepBig.isDisable = !state
     }
 
-    /**
-     * Выполняет малый шаг (stepForward).
-     */
-    private fun doSmallStep() {
-        val stepper = warshallStepper
-        if (stepper != null && !stepper.isFinished()) {
-            val step = stepper.stepForward()
-            logStep(step)
-            updateStep(step)
-            checkFinished(stepper)
-        }
-    }
+    // ─────────────────── Логирование ───────────────────
 
     /**
-     * Выполняет средний шаг — до перехода к следующему i (строка).
-     */
-    private fun doMediumStep() {
-        val stepper = warshallStepper
-        if (stepper != null && !stepper.isFinished()) {
-            var step: WarshallStep? = null
-            val startI = stepper.currentStep().i
-            val startK = stepper.currentStep().k
-            do {
-                step = stepper.stepForward()
-                if (step != null) logStep(step)
-            } while (!stepper.isFinished() && (step?.i == startI && step.k == startK))
-            step?.let {
-                updateStep(it)
-                checkFinished(stepper)
-            }
-        }
-    }
-
-    /**
-     * Выполняет крупный шаг — до перехода к следующему k (слой).
-     */
-    private fun doBigStep() {
-        val stepper = warshallStepper
-        if (stepper != null && !stepper.isFinished()) {
-            var step: WarshallStep? = null
-            val startK = stepper.currentStep().k
-            do {
-                step = stepper.stepForward()
-                if (step != null) logStep(step)
-            } while (!stepper.isFinished() && step?.k == startK)
-            step?.let {
-                updateStep(it)
-                checkFinished(stepper)
-            }
-        }
-    }
-
-    /**
-     * Обновляет визуализацию матрицы и графа после очередного шага.
+     * Добавляет сообщение в лог.
      *
-     * @param step Текущее состояние (WarshallStep).
+     * @param msg Текст сообщения
      */
-    private fun updateStep(step: WarshallStep) {
-        matrixInput.updateMatrixDisplay(step.matrix)
-        matrixInput.clearHighlights()
-        if (step.involved.isNotEmpty()) {
-            matrixInput.highlightCells(step.involved)
-        }
-        matrixInput.highlightHeader(step.k)
-        graphPanel.updateGraph(
-            step.matrix,
-            highlights = step.involved,
-            highlightedNodes = listOf(step.i, step.j, step.k)
-        )
-        statusLabel.text = if (warshallStepper?.isFinished() == true)
-            "Статус: Алгоритм завершён."
-        else
-            "Статус: ${step.message}"
-        iterationLabel.text = "k=${step.k + 1}, i=${step.i + 1}, j=${step.j + 1}"
-    }
+    private fun log(msg: String) = logArea.appendText("$msg\n")
 
     /**
-     * Добавляет сообщение в текстовый лог.
+     * Добавляет сообщение о текущем шаге.
      *
-     * @param message Текст сообщения.
+     * @param s WarshallStep для лога
      */
-    private fun log(message: String) {
-        logArea.appendText("$message\n")
-    }
+    private fun logStep(s: WarshallStep) = log("Шаг: k=${s.k + 1}, i=${s.i + 1}, j=${s.j + 1} — ${s.message}")
 
     /**
-     * Добавляет лог о текущем шаге с индексами и сообщением.
-     *
-     * @param step Состояние текущего шага.
+     * Показывает справочное окно с описанием интерфейса.
      */
-    private fun logStep(step: WarshallStep) {
-        log("Шаг: k=${step.k + 1}, i=${step.i + 1}, j=${step.j + 1} — ${step.message}")
+    private fun showHelp() {
+        Alert(Alert.AlertType.INFORMATION).apply {
+            title = "Справка"
+            headerText = "Алгоритм Уоршелла"
+            contentText = """
+                • Введите матрицу смежности или сгенерируйте её.
+                • "Запуск" – покадровый режим.
+                • Кнопки Малый/Средний/Крупный – шаги по j / i / k.
+                • "Выполнить всё" – сразу финальный результат.
+                • "Сброс" – вернуться к исходному состоянию.
+            """.trimIndent()
+        }.showAndWait()
     }
 }

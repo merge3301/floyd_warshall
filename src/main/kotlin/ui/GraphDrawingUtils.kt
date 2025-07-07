@@ -1,32 +1,38 @@
 package ui
 
+import javafx.geometry.VPos
 import javafx.scene.layout.Pane
-import javafx.scene.shape.*
-import javafx.scene.text.Text
-import javafx.scene.text.Font
 import javafx.scene.paint.Color
-import kotlin.math.*
+import javafx.scene.shape.Circle
+import javafx.scene.shape.Line
+import javafx.scene.shape.Polygon
+import javafx.scene.text.Font
+import javafx.scene.text.Text
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.hypot
+import kotlin.math.sin
 
 /**
- * Вспомогательные функции для визуализации графа на Pane.
+ * Набор утилит для отрисовки и интерактивного обновления графа на JavaFX Pane.
+ * Позволяет строить рёбра, вершины, петли, а также полностью центрировать номера вершин.
  *
- * Используется для отрисовки рёбер, луп, вершин, drag'n'drop перемещений,
- * а также для подсветки текущих шагов алгоритма Уоршелла.
+ * Используется для визуализации шагов алгоритма Уоршелла.
  */
 object GraphDrawingUtils {
 
     /**
-     * Перерисовывает граф: вершины, рёбра, лупы и лейблы.
+     * Полностью обновляет граф (все рёбра, лупы, вершины и номера) на указанном Pane.
      *
-     * @param graphLayer Слой (Pane), на который всё рисуется.
-     * @param matrixInput Матрица смежности (в т.ч. для получения содержимого и текстовых полей).
-     * @param size Размер графа (количество вершин).
-     * @param highlights Подсветки рёбер/вершин [(i, j, тип)], например, "added", "candidate".
-     * @param nodePositions Список координат вершин (обновляется при drag).
-     * @param edgeMap Мапа рёбер (i, j) → (Line, Polygon).
-     * @param nodeMap Мапа вершин (i) → Circle.
-     * @param onVertexClicked Callback для клика по вершине (передаёт номер вершины).
-     * @param selectedNodes Список выделенных вершин (по умолчанию пуст).
+     * @param graphLayer   Pane, на котором размещается граф
+     * @param matrixInput  Источник матрицы смежности (MatrixInput)
+     * @param size         Размер графа (число вершин)
+     * @param highlights   Список подсвечиваемых рёбер/ячеек [(i, j, тип)]
+     * @param nodePositions Список координат вершин (обновляется при drag)
+     * @param edgeMap      Мапа рёбер (i, j) → (Line, Polygon), для быстрой перерисовки
+     * @param nodeMap      Мапа вершин (i → Circle)
+     * @param onVertexClicked Коллбек для клика по вершине
+     * @param selectedNodes Список номеров выделенных вершин (по умолчанию пуст)
      */
     fun updateVisualizationNodes(
         graphLayer: Pane,
@@ -39,147 +45,236 @@ object GraphDrawingUtils {
         onVertexClicked: (Int) -> Unit,
         selectedNodes: Collection<Int> = emptyList()
     ) {
+        // Очищаем всё на слое перед новой отрисовкой
         graphLayer.children.clear()
         edgeMap.keys.removeIf { it.first >= size || it.second >= size }
         nodeMap.clear()
 
-        val radius = 175.0
-        val centerX = 600.0
-        val centerY = 600.0
+        // Добавляем рёбра (в т.ч. "phantom" — пунктирные)
+        val allEdges = buildEdges(graphLayer, matrixInput, size, highlights, nodePositions, edgeMap)
+        // Добавляем петли (loops)
+        drawLoops(graphLayer, matrixInput, size, nodePositions)
+        // Добавляем вершины и подписи
+        val (circles, labels) = buildNodes(
+            graphLayer, size, nodePositions, selectedNodes,
+            matrixInput, highlights, edgeMap, onVertexClicked
+        )
+        // Последовательное добавление: рёбра → вершины → лейблы (чтобы лейблы были поверх)
+        allEdges.forEach { (l, a) -> graphLayer.children += listOf(l, a) }
+        graphLayer.children += circles
+        graphLayer.children += labels
+        // Обновляем nodeMap для быстрой адресации по номеру вершины
+        circles.forEachIndexed { idx, c -> nodeMap[idx] = c }
+    }
 
-        // Только если не хватает позиций — расставляем по кругу
-        if (nodePositions.size < size) {
-            // Добавляем только новые позиции!
-            val radius = 175.0
-            val centerX = 600.0
-            val centerY = 600.0
-            for (i in nodePositions.size until size) {
-                val angle = 2 * Math.PI * i / size
-                val x = centerX + radius * cos(angle)
-                val y = centerY + radius * sin(angle)
-                nodePositions.add(Pair(x, y))
-            }
-        } else if (nodePositions.size > size) {
-            // Удаляем только лишние
-            while (nodePositions.size > size) nodePositions.removeAt(nodePositions.size - 1)
+    // -------------------- EDGES --------------------
+
+    /**
+     * Строит и возвращает список рёбер (Line + Polygon) для текущего состояния графа.
+     *
+     * @return Список пар (Line, Polygon) для отрисовки на Pane
+     */
+    private fun buildEdges(
+        graphLayer: Pane,
+        matrixInput: MatrixInput,
+        size: Int,
+        highlights: List<Triple<Int, Int, String>>,
+        nodePositions: List<Pair<Double, Double>>,
+        edgeMap: MutableMap<Pair<Int, Int>, Pair<Line, Polygon>>
+    ): List<Pair<Line, Polygon>> {
+        val edges = mutableListOf<Pair<Line, Polygon>>()
+        // Вспомогательный addArrow: рисует ребро и применяет стиль
+        fun addArrow(i: Int, j: Int, style: (Line, Polygon) -> Unit = { _, _ -> }) {
+            val (l, a) = arrow(nodePositions[i], nodePositions[j])
+            style(l, a)
+            edges += l to a
+            edgeMap[i to j] = l to a
         }
-
-        // Обычные рёбра и phantom edges
-        val allEdges = mutableListOf<Pair<Line, Polygon>>()
-        for ((i, j, type) in highlights) {
-            if (type == "candidate") {
-                val exists = (i in 0 until size) && (j in 0 until size) &&
-                        (matrixInput.matrixFields[i][j].text.trim().toIntOrNull() == 1)
-                if (!exists && i != j) {
-                    val (x1, y1) = nodePositions[i]
-                    val (x2, y2) = nodePositions[j]
-                    val (line, arrow) = drawArrow(x1, y1, x2, y2)
-                    line.strokeDashArray.addAll(8.0, 8.0)
-                    line.stroke = Color.ORANGE
-                    line.opacity = 0.6
-                    arrow.fill = Color.ORANGE
-                    arrow.opacity = 0.4
-                    allEdges.add(line to arrow)
+        // Phantom edges (кандидаты, пунктирные)
+        for ((i, j, type) in highlights) if (type == "candidate" && i != j) {
+            if (matrixInput.matrixFields[i][j].text.trim().toIntOrNull() != 1) {
+                addArrow(i, j) { l, a ->
+                    l.strokeDashArray += listOf(8.0, 8.0)
+                    l.stroke = Color.ORANGE
+                    l.opacity = 0.6
+                    a.fill = Color.ORANGE
+                    a.opacity = 0.4
                 }
             }
         }
-        for (i in 0 until size) {
-            for (j in 0 until size) {
-                val value = matrixInput.matrixFields[i][j].text.trim().toIntOrNull() ?: 0
-                if (value == 1 && i != j) {
-                    val (x1, y1) = nodePositions[i]
-                    val (x2, y2) = nodePositions[j]
-                    val (line, arrow) = drawArrow(x1, y1, x2, y2)
-                    val isAdded = highlights.any { it.first == i && it.second == j && it.third == "added" }
-                    if (isAdded) {
-                        line.stroke = Color.FORESTGREEN
-                        arrow.fill = Color.FORESTGREEN
-                        line.strokeWidth = 3.0
+        // Обычные рёбра (по матрице смежности)
+        for (i in 0 until size) for (j in 0 until size) if (i != j) {
+            if (matrixInput.matrixFields[i][j].text.trim().toIntOrNull() == 1) {
+                val added = highlights.any { it.first == i && it.second == j && it.third == "added" }
+                addArrow(i, j) { l, a ->
+                    if (added) {
+                        l.stroke = Color.FORESTGREEN
+                        l.strokeWidth = 3.0
+                        a.fill = Color.FORESTGREEN
                     } else {
-                        line.stroke = Color.DARKBLUE
-                        arrow.fill = Color.DARKBLUE
-                        line.strokeWidth = 2.5
+                        l.stroke = Color.DARKBLUE
+                        l.strokeWidth = 2.5
+                        a.fill = Color.DARKBLUE
                     }
-                    edgeMap[i to j] = line to arrow
-                    allEdges.add(line to arrow)
                 }
             }
         }
+        return edges
+    }
 
-        // Лупы
-        for (i in 0 until size) {
-            val value = matrixInput.matrixFields[i][i].text.trim().toIntOrNull() ?: 0
-            if (value == 1) {
+    // -------------------- LOOPS --------------------
+
+    /**
+     * Рисует все петли (loops) для вершин, у которых matrix[i][i] == 1.
+     *
+     * @param graphLayer   Слой для рисования
+     * @param matrixInput  Матрица смежности
+     * @param size         Количество вершин
+     * @param nodePositions Список координат всех вершин
+     */
+    private fun drawLoops(
+        graphLayer: Pane,
+        matrixInput: MatrixInput,
+        size: Int,
+        nodePositions: List<Pair<Double, Double>>
+    ) {
+        val r = 175.0
+        val cx = 600.0
+        val cy = 600.0
+        repeat(size) { i ->
+            if (matrixInput.matrixFields[i][i].text.trim().toIntOrNull() == 1) {
                 val (x, y) = nodePositions[i]
-                val loop = drawLoop(x, y, centerX, centerY)
-                graphLayer.children.add(loop)
+                graphLayer.children += loop(x, y, cx, cy)
             }
         }
+    }
 
-        // Вершины и лейблы (ОТДЕЛЬНО, чтобы всегда были сверху!)
-        val nodeCircles = mutableListOf<Circle>()
-        val nodeLabels = mutableListOf<Text>()
-        for (i in 0 until size) {
+    // -------------------- NODES --------------------
+
+    /**
+     * Рисует вершины (Circle) и подписи (Text), полностью центрируя номер по центру круга.
+     * Реализует drag'n'drop для каждой вершины.
+     *
+     * @return Пара: список Circle (вершины) и список Text (номера)
+     */
+    private fun buildNodes(
+        graphLayer: Pane,
+        size: Int,
+        nodePositions: MutableList<Pair<Double, Double>>,
+        selected: Collection<Int>,
+        matrixInput: MatrixInput,
+        highlights: List<Triple<Int, Int, String>>,
+        edgeMap: MutableMap<Pair<Int, Int>, Pair<Line, Polygon>>,
+        onVertexClicked: (Int) -> Unit
+    ): Pair<List<Circle>, List<Text>> {
+        val circles = mutableListOf<Circle>()
+        val labels  = mutableListOf<Text>()
+
+        repeat(size) { i ->
             val (x, y) = nodePositions[i]
-            val highlighted = selectedNodes.contains(i)
-            val node = Circle(x, y, 22.0,
-                if (highlighted) Color.GOLD else Color.LIGHTBLUE).apply {
-                stroke = if (highlighted) Color.ORANGE else Color.DODGERBLUE
-                strokeWidth = if (highlighted) 3.5 else 2.0
+            val hl = i in selected
+            val circle = Circle(x, y, 22.0).apply {
+                fill = if (hl) Color.GOLD else Color.LIGHTBLUE
+                stroke = if (hl) Color.ORANGE else Color.DODGERBLUE
+                strokeWidth = if (hl) 3.5 else 2.0
             }
-            val label = Text(x - 7, y + 6, (i + 1).toString()).apply {
+            val label = Text((i + 1).toString()).apply {
                 font = Font.font(17.0)
-                fill = if (highlighted) Color.DARKRED else Color.BLACK
-                mouseTransparentProperty().set(true) // чтобы не мешал drag
+                fill = if (hl) Color.DARKRED else Color.BLACK
+                textOrigin = VPos.TOP
+                isMouseTransparent = true
+                // Центрирование label вручную
+                relocate(x - boundsInLocal.width / 2, y - boundsInLocal.height / 2)
             }
-            // --- DRAG'n'DROP ---
-            var dragDeltaX = 0.0
-            var dragDeltaY = 0.0
-            node.setOnMousePressed { event ->
-                dragDeltaX = event.sceneX - node.centerX
-                dragDeltaY = event.sceneY - node.centerY
-                node.stroke = Color.FIREBRICK
-                node.toFront()
-                event.consume()
-            }
-            node.setOnMouseDragged { event ->
-                node.centerX = event.sceneX - dragDeltaX
-                node.centerY = event.sceneY - dragDeltaY
-                nodePositions[i] = node.centerX to node.centerY
-                // Передвигаем label вместе с node
-                label.x = node.centerX - 7
-                label.y = node.centerY + 6
-                // Перерисовываем только edges!
-                redrawEdges(graphLayer, nodePositions, matrixInput, highlights, edgeMap)
-                event.consume()
-            }
-            node.setOnMouseReleased { event ->
-                node.stroke = if (highlighted) Color.ORANGE else Color.DODGERBLUE
-                event.consume()
-            }
-            node.setOnMouseClicked { onVertexClicked(i) }
-            nodeCircles.add(node)
-            nodeLabels.add(label)
-            nodeMap[i] = node
-        }
 
-        // 1. Рёбра и лупы
-        allEdges.forEach { (line, arrow) -> graphLayer.children.addAll(line, arrow) }
-        // 2. Вершины
-        nodeCircles.forEach { graphLayer.children.add(it) }
-        // 3. Лейблы
-        nodeLabels.forEach { graphLayer.children.add(it) }
+            // Drag — центрируем label при каждом движении
+            var offX = 0.0; var offY = 0.0
+            circle.setOnMousePressed { e ->
+                val p = graphLayer.sceneToLocal(e.sceneX, e.sceneY)
+                offX = p.x - circle.centerX
+                offY = p.y - circle.centerY
+                circle.stroke = Color.FIREBRICK
+                circle.toFront()
+                label.toFront()
+                e.consume()
+            }
+            circle.setOnMouseDragged { e ->
+                val p = graphLayer.sceneToLocal(e.sceneX, e.sceneY)
+                val nx = p.x - offX
+                val ny = p.y - offY
+                nodePositions[i] = nx to ny
+                circle.centerX = nx
+                circle.centerY = ny
+                label.relocate(nx - label.boundsInLocal.width / 2, ny - label.boundsInLocal.height / 2)
+                redrawEdges(graphLayer, nodePositions, matrixInput, highlights, edgeMap)
+                e.consume()
+            }
+            circle.setOnMouseReleased { e ->
+                circle.stroke = if (hl) Color.ORANGE else Color.DODGERBLUE
+                e.consume()
+            }
+            circle.setOnMouseClicked { onVertexClicked(i) }
+            circles += circle
+            labels += label
+        }
+        return circles to labels
+    }
+
+    // -------------------- PRIMITIVES --------------------
+
+    /**
+     * Рисует ориентированное ребро (Line + Polygon-стрелка) между двумя вершинами.
+     * Координаты корректируются так, чтобы линия не заходила внутрь круга.
+     *
+     * @param from Начальная точка (координаты центра)
+     * @param to   Конечная точка (координаты центра)
+     * @return Пара (Line, Polygon) — линия и стрелка
+     */
+    private fun arrow(from: Pair<Double, Double>, to: Pair<Double, Double>): Pair<Line, Polygon> {
+        val (fx, fy) = from
+        val (tx, ty) = to
+        val dx = tx - fx; val dy = ty - fy; val len = hypot(dx, dy)
+        val r = 22.0
+        val sx = fx + dx * r / len
+        val sy = fy + dy * r / len
+        val ex = tx - dx * r / len
+        val ey = ty - dy * r / len
+        val line = Line(sx, sy, ex, ey).apply { stroke = Color.DARKBLUE; strokeWidth = 2.5 }
+        val ang = atan2(ey - sy, ex - sx); val size = 15.0
+        val x1 = ex - size * cos(ang - Math.PI / 10); val y1 = ey - size * sin(ang - Math.PI / 10)
+        val x2 = ex - size * cos(ang + Math.PI / 10); val y2 = ey - size * sin(ang + Math.PI / 10)
+        val poly = Polygon(ex, ey, x1, y1, x2, y2).apply { fill = Color.DARKBLUE }
+        return line to poly
     }
 
     /**
-     * Перерисовывает только рёбра (без вершин и лейблов).
-     * Используется при перемещении (drag'n'drop) вершины.
+     * Рисует "петлю" у вершины (самореферентное ребро).
      *
-     * @param graphLayer Слой для рёбер.
-     * @param nodePositions Координаты всех вершин.
-     * @param matrixInput Матрица смежности.
-     * @param highlights Текущие подсветки рёбер.
-     * @param edgeMap Мапа для хранения новых рёбер.
+     * @param x X-координата вершины
+     * @param y Y-координата вершины
+     * @param cx X-координата центра сцены
+     * @param cy Y-координата центра сцены
+     * @return Круг (Circle), стилизованный как лупа
+     */
+    private fun loop(x: Double, y: Double, cx: Double, cy: Double): Circle {
+        val r = 16.0
+        val shift = 24.0
+        val vx = x - cx; val vy = y - cy; val len = hypot(vx, vy)
+        val n = if (len > 1e-6) 1 / len else 0.0
+        val dx = vx * n; val dy = vy * n
+        val lx = x + dx * shift - dy * 6
+        val ly = y + dy * shift + dx * 6
+        return Circle(lx, ly, r).apply {
+            fill = Color.TRANSPARENT
+            stroke = Color.DARKMAGENTA
+            strokeWidth = 2.2
+        }
+    }
+
+    // -------------------- QUICK EDGE REDRAW --------------------
+
+    /**
+     * Быстро перерисовывает только рёбра (используется при drag вершины).
      */
     private fun redrawEdges(
         graphLayer: Pane,
@@ -188,113 +283,9 @@ object GraphDrawingUtils {
         highlights: List<Triple<Int, Int, String>>,
         edgeMap: MutableMap<Pair<Int, Int>, Pair<Line, Polygon>>
     ) {
-        // Сначала удаляем старые рёбра
         graphLayer.children.removeIf { it is Line || it is Polygon }
         edgeMap.clear()
-
-        val size = nodePositions.size
-        for ((i, j, type) in highlights) {
-            if (type == "candidate") {
-                val exists = (i in 0 until size) && (j in 0 until size) &&
-                        (matrixInput.matrixFields[i][j].text.trim().toIntOrNull() == 1)
-                if (!exists && i != j) {
-                    val (x1, y1) = nodePositions[i]
-                    val (x2, y2) = nodePositions[j]
-                    val (line, arrow) = drawArrow(x1, y1, x2, y2)
-                    line.strokeDashArray.addAll(8.0, 8.0)
-                    line.stroke = Color.ORANGE
-                    line.opacity = 0.6
-                    arrow.fill = Color.ORANGE
-                    arrow.opacity = 0.4
-                    graphLayer.children.addAll(line, arrow)
-                }
-            }
-        }
-        for (i in 0 until size) {
-            for (j in 0 until size) {
-                val value = matrixInput.matrixFields[i][j].text.trim().toIntOrNull() ?: 0
-                if (value == 1 && i != j) {
-                    val (x1, y1) = nodePositions[i]
-                    val (x2, y2) = nodePositions[j]
-                    val (line, arrow) = drawArrow(x1, y1, x2, y2)
-                    val isAdded = highlights.any { it.first == i && it.second == j && it.third == "added" }
-                    if (isAdded) {
-                        line.stroke = Color.FORESTGREEN
-                        arrow.fill = Color.FORESTGREEN
-                        line.strokeWidth = 3.0
-                    } else {
-                        line.stroke = Color.DARKBLUE
-                        arrow.fill = Color.DARKBLUE
-                        line.strokeWidth = 2.5
-                    }
-                    edgeMap[i to j] = line to arrow
-                    graphLayer.children.addAll(line, arrow)
-                }
-            }
-        }
-    }
-
-    /**
-     * Рисует ориентированное ребро (Line+Polygon-стрелка) между двумя точками.
-     * Рёбра корректно укорачиваются до границ кружков.
-     *
-     * @param fromX X-координата начальной вершины.
-     * @param fromY Y-координата начальной вершины.
-     * @param toX X-координата конечной вершины.
-     * @param toY Y-координата конечной вершины.
-     * @return Пара (Line, Polygon-стрелка).
-     */
-    private fun drawArrow(fromX: Double, fromY: Double, toX: Double, toY: Double): Pair<Line, Polygon> {
-        val dx = toX - fromX
-        val dy = toY - fromY
-        val len = sqrt(dx * dx + dy * dy)
-        val r = 22.0
-        val fx = fromX + dx * r / len
-        val fy = fromY + dy * r / len
-        val tx = toX - dx * r / len
-        val ty = toY - dy * r / len
-
-        val line = Line(fx, fy, tx, ty).apply {
-            stroke = Color.DARKBLUE
-            strokeWidth = 2.5
-        }
-
-        val angle = atan2(ty - fy, tx - fx)
-        val arrowSize = 15.0
-        val x1 = tx - arrowSize * cos(angle - Math.PI / 10)
-        val y1 = ty - arrowSize * sin(angle - Math.PI / 10)
-        val x2 = tx - arrowSize * cos(angle + Math.PI / 10)
-        val y2 = ty - arrowSize * sin(angle + Math.PI / 10)
-
-        val arrow = Polygon(tx, ty, x1, y1, x2, y2).apply {
-            fill = Color.DARKBLUE
-        }
-        return line to arrow
-    }
-
-    /**
-     * Рисует "луп" (петлю) на вершине.
-     *
-     * @param x X-координата вершины.
-     * @param y Y-координата вершины.
-     * @param cx X-координата центра сцены (для отступа).
-     * @param cy Y-координата центра сцены.
-     * @return Круг (Circle), стилизованный как лупа.
-     */
-    private fun drawLoop(x: Double, y: Double, cx: Double, cy: Double): Circle {
-        val loopRadius = 16.0
-        val shift = 24.0
-        val vx = x - cx
-        val vy = y - cy
-        val len = sqrt(vx * vx + vy * vy)
-        val norm = if (len > 0.001) 1.0 / len else 0.0
-        val dx = vx * norm
-        val dy = vy * norm
-        val loopCenterX = x + dx * shift - dy * 6
-        val loopCenterY = y + dy * shift + dx * 6
-        return Circle(loopCenterX, loopCenterY, loopRadius, Color.TRANSPARENT).apply {
-            stroke = Color.DARKMAGENTA
-            strokeWidth = 2.2
-        }
+        buildEdges(graphLayer, matrixInput, nodePositions.size, highlights, nodePositions, edgeMap)
+            .forEach { (l, a) -> graphLayer.children += listOf(l, a) }
     }
 }
